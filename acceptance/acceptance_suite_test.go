@@ -17,7 +17,7 @@ var binPath string
 
 var _ = BeforeSuite(func() {
 	var err error
-	binPath, err = gexec.Build("github.com/cloudfoundry-incubator/loom")
+	binPath, err = gexec.Build("github.com/cloudfoundry-incubator/ducatify/cmd/ducatify")
 	Expect(err).NotTo(HaveOccurred())
 })
 
