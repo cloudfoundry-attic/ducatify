@@ -25,6 +25,17 @@ func loadFixture(name string) map[string]interface{} {
 	return data
 }
 
+func findElementWithName(slice interface{}, name string) interface{} {
+	for _, el := range slice.([]interface{}) {
+		elAsMap := el.(map[interface{}]interface{})
+		if elAsMap["name"] == name {
+			return el
+		}
+	}
+	Fail("missing expected element " + name)
+	return nil
+}
+
 var _ = Describe("Manifest transformer", func() {
 	var (
 		cmd                                   *exec.Cmd
@@ -60,21 +71,28 @@ var _ = Describe("Manifest transformer", func() {
 		Expect(getKeys(actualOutput)).To(Equal(getKeys(expectedOutput)))
 	})
 
-	It("leaves intact most top-level keys", func() {
-		for _, key := range []string{"name", "networks", "update"} {
+	It("leaves most of the deployment configuration intact", func() {
+		for _, key := range []string{"name", "networks", "update", "resource_pools"} {
 			Expect(actualOutput).To(HaveKey(key))
 			Expect(expectedOutput[key]).To(Equal(vanilla[key]))
 			Expect(actualOutput[key]).To(Equal(vanilla[key]))
 		}
 	})
 
-	It("adds the ducati release", func() {
+	It("updates the releases", func() {
 		Expect(actualOutput).To(HaveKey("releases"))
 		Expect(actualOutput["releases"]).To(ConsistOf(expectedOutput["releases"]))
 	})
 
+	It("adds the ducati_db job", func() {
+		Expect(actualOutput).To(HaveKey("jobs"))
+		actualDBJob := findElementWithName(actualOutput["jobs"], "ducati_db")
+		expectedDBJob := findElementWithName(expectedOutput["jobs"], "ducati_db")
+		Expect(actualDBJob).To(Equal(expectedDBJob))
+	})
+
 	XIt("returns the expected transformed manifest", func() {
-		for _, key := range []string{"jobs", "properties", "releases", "resource_pools"} {
+		for _, key := range []string{"jobs", "properties"} {
 			Expect(actualOutput).To(HaveKey(key))
 			Expect(actualOutput[key]).To(Equal(expectedOutput[key]))
 		}

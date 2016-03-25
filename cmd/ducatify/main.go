@@ -37,7 +37,7 @@ func transformBytes(vanillaBytes []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	transformer := &ducatify.Transformer{}
+	transformer := ducatify.New()
 	err = transformer.Transform(manifest)
 	if err != nil {
 		return nil, err

@@ -130,14 +130,14 @@ jobs:
 - name: ducati_db
   instances: 1
   persistent_disk: 256
+  resource_pool: database_z1
+  networks:
+  - name: diego1
   templates:
   - name: postgres
     release: ducati
   - name: consul_agent
     release: cf
-  resource_pool: ducati_db_z1
-  networks:
-  - name: diego1
 name: cf-warden-diego
 networks:
 - name: diego1
@@ -238,12 +238,6 @@ resource_pools:
 - cloud_properties: {}
   name: colocated_z3
   network: diego3
-  stemcell:
-    name: bosh-warden-boshlite-ubuntu-trusty-go_agent
-    version: latest
-- cloud_properties: {}
-  name: ducati_db_z1
-  network: diego1
   stemcell:
     name: bosh-warden-boshlite-ubuntu-trusty-go_agent
     version: latest
