@@ -1,0 +1,210 @@
+jobs:
+- instances: 1
+  name: cell_z1
+  networks:
+  - name: diego1
+  properties:
+    diego:
+      rep:
+        zone: z1
+    metron_agent:
+      zone: z1
+  resource_pool: cell_z1
+  templates:
+  - name: rep
+    release: diego
+  - name: consul_agent
+    release: cf
+  - name: garden
+    release: garden-linux
+  - name: rootfses
+    release: diego
+  - name: metron_agent
+    release: cf
+  update:
+    max_in_flight: 1
+    serial: false
+- instances: 0
+  name: brain_z2
+  networks:
+  - name: diego2
+  properties:
+    metron_agent:
+      zone: z2
+  resource_pool: brain_z2
+  templates:
+  - name: consul_agent
+    release: cf
+  - name: auctioneer
+    release: diego
+  - name: converger
+    release: diego
+  - name: metron_agent
+    release: cf
+  update:
+    max_in_flight: 1
+    serial: true
+- instances: 0
+  name: cell_z2
+  networks:
+  - name: diego2
+  properties:
+    diego:
+      rep:
+        zone: z2
+    metron_agent:
+      zone: z2
+  resource_pool: cell_z2
+  templates:
+  - name: rep
+    release: diego
+  - name: consul_agent
+    release: cf
+  - name: garden
+    release: garden-linux
+  - name: rootfses
+    release: diego
+  - name: metron_agent
+    release: cf
+  update:
+    max_in_flight: 1
+    serial: false
+- instances: 0
+  name: colocated_z3
+  networks:
+  - name: diego3
+  persistent_disk_pool: database_disks
+  properties:
+    consul:
+      agent:
+        services:
+          etcd: {}
+    diego:
+      rep:
+        zone: z3
+    metron_agent:
+      zone: z3
+  resource_pool: colocated_z3
+  templates:
+  - name: rep
+    release: diego
+  - name: auctioneer
+    release: diego
+  - name: bbs
+    release: diego
+  - name: cc_uploader
+    release: diego
+  - name: converger
+    release: diego
+  - name: consul_agent
+    release: cf
+  - name: etcd
+    release: etcd
+  - name: file_server
+    release: diego
+  - name: garden
+    release: garden-linux
+  - name: metron_agent
+    release: cf
+  - name: nsync
+    release: diego
+  - name: rootfses
+    release: diego
+  - name: route_emitter
+    release: diego
+  - name: ssh_proxy
+    release: diego
+  - name: stager
+    release: diego
+  - name: tps
+    release: diego
+  update:
+    max_in_flight: 1
+    serial: true
+name: cf-warden-diego
+networks:
+- name: diego1
+  type: manual
+  subnets:
+  - cloud_properties: {}
+    range: 10.244.16.0/24
+    reserved:
+    - 10.244.16.1
+    static: []
+- name: diego2
+  type: manual
+  subnets:
+  - cloud_properties: {}
+    range: 10.244.18.0/24
+    reserved:
+    - 10.244.18.1
+    static: []
+- name: diego3
+  type: manual
+  subnets:
+  - cloud_properties: {}
+    range: 10.244.20.0/24
+    reserved:
+    - 10.244.20.1
+    static: []
+properties:
+  garden:
+    allow_host_access: null
+    allow_networks: null
+    default_container_grace_time: 0
+    deny_networks:
+    - 0.0.0.0/0
+    disk_quota_enabled: null
+    enable_graph_cleanup: true
+    graph_cleanup_threshold_in_mb: 0
+    insecure_docker_registry_list: null
+    listen_address: 0.0.0.0:7777
+    listen_network: tcp
+    log_level: debug
+    network_mtu: null
+    persistent_image_list:
+    - /var/vcap/packages/rootfs_cflinuxfs2/rootfs
+  syslog_daemon_config:
+    address: null
+    port: null
+releases:
+- name: diego
+  version: latest
+- name: garden-linux
+  version: latest
+- name: etcd
+  version: latest
+- name: cf
+  version: latest
+resource_pools:
+- cloud_properties: {}
+  name: brain_z2
+  network: diego2
+  stemcell:
+    name: bosh-warden-boshlite-ubuntu-trusty-go_agent
+    version: latest
+- cloud_properties: {}
+  name: cell_z1
+  network: diego1
+  stemcell:
+    name: bosh-warden-boshlite-ubuntu-trusty-go_agent
+    version: latest
+- cloud_properties: {}
+  name: cell_z2
+  network: diego2
+  stemcell:
+    name: bosh-warden-boshlite-ubuntu-trusty-go_agent
+    version: latest
+- cloud_properties: {}
+  name: colocated_z3
+  network: diego3
+  stemcell:
+    name: bosh-warden-boshlite-ubuntu-trusty-go_agent
+    version: latest
+update:
+  canaries: 1
+  canary_watch_time: 5000-120000
+  max_in_flight: 1
+  serial: false
+  update_watch_time: 5000-120000
+
