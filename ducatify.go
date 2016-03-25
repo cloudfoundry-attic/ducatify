@@ -3,6 +3,7 @@ package ducatify
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 type Transformer struct {
@@ -33,6 +34,89 @@ func (t *Transformer) Transform(manifest map[string]interface{}) error {
 	if err != nil {
 		return fmt.Errorf("adding ducati_db job: %s", err)
 	}
+
+	err = t.addDucatiTemplateToCells(manifest)
+	if err != nil {
+		return fmt.Errorf("adding ducati template to cells: %s", err)
+	}
+	return nil
+}
+
+func getElement(el interface{}, key string) (interface{}, error) {
+	m, ok := el.(map[string]interface{})
+	if ok {
+		v, ok := m[key]
+		if ok {
+			return v, nil
+		} else {
+			return nil, fmt.Errorf("map missing key %s", key)
+		}
+	}
+	um, ok := el.(map[interface{}]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unable to unpack %T", el)
+	}
+	v, ok := um[key]
+	if ok {
+		return v, nil
+	} else {
+		return nil, fmt.Errorf("map missing key %s", key)
+	}
+}
+
+func setElement(el interface{}, key string, val interface{}) error {
+	m, ok := el.(map[string]interface{})
+	if ok {
+		m[key] = val
+		return nil
+	}
+	um, ok := el.(map[interface{}]interface{})
+	if !ok {
+		return fmt.Errorf("unable to unpack %T", el)
+	}
+	um[key] = val
+	return nil
+}
+
+func (t *Transformer) addDucatiTemplateToCells(manifest map[string]interface{}) error {
+	jobsVal, ok := manifest["jobs"]
+	if !ok {
+		return errors.New("missing key")
+	}
+
+	jobsSlice, ok := jobsVal.([]interface{})
+	if !ok {
+		panic("input type not slice")
+	}
+
+	for _, jobVal := range jobsSlice {
+		templates, err := getElement(jobVal, "templates")
+		if err != nil {
+			panic(err)
+		}
+		nameVal, err := getElement(jobVal, "name")
+		if err != nil {
+			panic(err)
+		}
+		name, ok := nameVal.(string)
+		if !ok {
+			panic("name not a string")
+		}
+		if !strings.HasPrefix(name, "cell_z") {
+			continue
+		}
+		appended, err := t.AppendToSlice(templates,
+			map[string]interface{}{"name": "ducati", "release": "ducati"},
+		)
+		if err != nil {
+			panic(err)
+		}
+		err = setElement(jobVal, "templates", appended)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	return nil
 }
 

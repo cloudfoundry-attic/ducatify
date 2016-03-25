@@ -17,11 +17,59 @@ var _ = Describe("Transform", func() {
 		transformer = ducatify.New()
 		manifest = map[string]interface{}{
 			"releases": []interface{}{},
-			"jobs":     []interface{}{},
+			"jobs": []interface{}{
+				map[string]interface{}{
+					"name":      "cell_z1",
+					"templates": []interface{}{},
+				},
+			},
 		}
 	})
 
-	Describe("modifying the jobs", func() {
+	Describe("modifying existing jobs", func() {
+		BeforeEach(func() {
+			manifest["jobs"] = []interface{}{
+				map[string]interface{}{
+					"name":      "cell_z1",
+					"instances": 3,
+					"templates": []interface{}{
+						map[string]interface{}{"name": "some-template", "release": "some-release"},
+					},
+				},
+				map[string]interface{}{
+					"name":      "cell_z2",
+					"instances": 5,
+					"templates": []interface{}{
+						map[string]interface{}{"name": "some-template", "release": "some-release"},
+					},
+				},
+			}
+		})
+
+		It("colocates ducati template onto every cell job", func() {
+			err := transformer.Transform(manifest)
+			Expect(err).NotTo(HaveOccurred())
+			jobs := manifest["jobs"].([]interface{})
+			Expect(jobs[0]).To(Equal(map[string]interface{}{
+				"name":      "cell_z1",
+				"instances": 3,
+				"templates": []interface{}{
+					map[string]interface{}{"name": "some-template", "release": "some-release"},
+					map[string]interface{}{"name": "ducati", "release": "ducati"},
+				},
+			}))
+			Expect(jobs[1]).To(Equal(map[string]interface{}{
+				"name":      "cell_z2",
+				"instances": 5,
+				"templates": []interface{}{
+					map[string]interface{}{"name": "some-template", "release": "some-release"},
+					map[string]interface{}{"name": "ducati", "release": "ducati"},
+				},
+			}))
+		})
+	})
+
+	Describe("adding new jobs", func() {
 		It("adds the ducati_db job", func() {
 			err := transformer.Transform(manifest)
 			Expect(err).NotTo(HaveOccurred())

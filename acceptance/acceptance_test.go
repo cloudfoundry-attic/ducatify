@@ -1,6 +1,7 @@
 package acceptance_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os/exec"
 	"path/filepath"
@@ -38,7 +39,8 @@ func findElementWithName(slice interface{}, name string) interface{} {
 
 var _ = Describe("Manifest transformer", func() {
 	var (
-		cmd                                   *exec.Cmd
+		cmd *exec.Cmd
+
 		vanilla, expectedOutput, actualOutput map[string]interface{}
 	)
 
@@ -89,6 +91,23 @@ var _ = Describe("Manifest transformer", func() {
 		actualDBJob := findElementWithName(actualOutput["jobs"], "ducati_db")
 		expectedDBJob := findElementWithName(expectedOutput["jobs"], "ducati_db")
 		Expect(actualDBJob).To(Equal(expectedDBJob))
+	})
+
+	It("colocates the ducati on every cell", func() {
+		Expect(actualOutput).To(HaveKey("jobs"))
+		for i := 1; i <= 2; i++ {
+			jobName := fmt.Sprintf("cell_z%d", i)
+			actualJob := findElementWithName(actualOutput["jobs"], jobName)
+			expectedJob := findElementWithName(expectedOutput["jobs"], jobName)
+			Expect(actualJob).To(Equal(expectedJob))
+		}
+	})
+
+	It("does not modify arbitrary jobs", func() {
+		Expect(actualOutput).To(HaveKey("jobs"))
+		actualJob := findElementWithName(actualOutput["jobs"], "brain_z2")
+		expectedJob := findElementWithName(expectedOutput["jobs"], "brain_z2")
+		Expect(actualJob).To(Equal(expectedJob))
 	})
 
 	XIt("returns the expected transformed manifest", func() {
