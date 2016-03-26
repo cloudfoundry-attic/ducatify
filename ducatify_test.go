@@ -26,7 +26,9 @@ var _ = Describe("Transform", func() {
 		}
 	})
 
-	Describe("modifying existing jobs", func() {
+	// trying to use new naming convention:
+	// https://github.com/cloudfoundry/bosh-notes/blob/master/deployment-naming.md
+	Describe("modifying cell instance groups", func() {
 		BeforeEach(func() {
 			manifest["jobs"] = []interface{}{
 				map[string]interface{}{
@@ -43,10 +45,17 @@ var _ = Describe("Transform", func() {
 						map[string]interface{}{"name": "some-template", "release": "some-release"},
 					},
 				},
+				map[string]interface{}{
+					"name":      "colocated_z3",
+					"instances": 1,
+					"templates": []interface{}{
+						map[string]interface{}{"name": "some-template", "release": "some-release"},
+					},
+				},
 			}
 		})
 
-		It("colocates ducati template onto every cell job", func() {
+		It("colocates ducati template onto every cell instance group", func() {
 			err := transformer.Transform(manifest)
 			Expect(err).NotTo(HaveOccurred())
 			jobs := manifest["jobs"].([]interface{})
@@ -61,6 +70,33 @@ var _ = Describe("Transform", func() {
 			Expect(jobs[1]).To(Equal(map[string]interface{}{
 				"name":      "cell_z2",
 				"instances": 5,
+				"templates": []interface{}{
+					map[string]interface{}{"name": "some-template", "release": "some-release"},
+					map[string]interface{}{"name": "ducati", "release": "ducati"},
+				},
+			}))
+		})
+	})
+
+	Describe("modifying the colocated instance", func() {
+		BeforeEach(func() {
+			manifest["jobs"] = []interface{}{
+				map[string]interface{}{
+					"name":      "colocated_z3",
+					"instances": 1,
+					"templates": []interface{}{
+						map[string]interface{}{"name": "some-template", "release": "some-release"},
+					},
+				},
+			}
+		})
+		It("colocates ducati template onto the 'colocated' job", func() {
+			err := transformer.Transform(manifest)
+			Expect(err).NotTo(HaveOccurred())
+			jobs := manifest["jobs"].([]interface{})
+			Expect(jobs[0]).To(Equal(map[string]interface{}{
+				"name":      "colocated_z3",
+				"instances": 1,
 				"templates": []interface{}{
 					map[string]interface{}{"name": "some-template", "release": "some-release"},
 					map[string]interface{}{"name": "ducati", "release": "ducati"},

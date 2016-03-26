@@ -93,7 +93,7 @@ var _ = Describe("Manifest transformer", func() {
 		Expect(actualDBJob).To(Equal(expectedDBJob))
 	})
 
-	It("colocates the ducati on every cell", func() {
+	It("adds the ducati job to every cell", func() {
 		Expect(actualOutput).To(HaveKey("jobs"))
 		for i := 1; i <= 2; i++ {
 			jobName := fmt.Sprintf("cell_z%d", i)
@@ -103,6 +103,14 @@ var _ = Describe("Manifest transformer", func() {
 		}
 	})
 
+	It("adds the ducati job to the colocated VMs", func() {
+		Expect(actualOutput).To(HaveKey("jobs"))
+		jobName := "colocated_z3"
+		actualJob := findElementWithName(actualOutput["jobs"], jobName)
+		expectedJob := findElementWithName(expectedOutput["jobs"], jobName)
+		Expect(actualJob).To(Equal(expectedJob))
+	})
+
 	It("does not modify arbitrary jobs", func() {
 		Expect(actualOutput).To(HaveKey("jobs"))
 		actualJob := findElementWithName(actualOutput["jobs"], "brain_z2")
@@ -110,10 +118,15 @@ var _ = Describe("Manifest transformer", func() {
 		Expect(actualJob).To(Equal(expectedJob))
 	})
 
-	XIt("returns the expected transformed manifest", func() {
-		for _, key := range []string{"jobs", "properties"} {
-			Expect(actualOutput).To(HaveKey(key))
-			Expect(actualOutput[key]).To(Equal(expectedOutput[key]))
-		}
+	It("transforms the jobs as required", func() {
+		key := "jobs"
+		Expect(actualOutput).To(HaveKey(key))
+		Expect(actualOutput[key]).To(Equal(expectedOutput[key]))
+	})
+
+	XIt("transforms the properties as required", func() {
+		key := "properties"
+		Expect(actualOutput).To(HaveKey(key))
+		Expect(actualOutput[key]).To(Equal(expectedOutput[key]))
 	})
 })

@@ -35,9 +35,14 @@ func (t *Transformer) Transform(manifest map[string]interface{}) error {
 		return fmt.Errorf("adding ducati_db job: %s", err)
 	}
 
-	err = t.addDucatiTemplateToCells(manifest)
+	err = t.addDucatiTemplate(manifest, "cell_z")
 	if err != nil {
 		return fmt.Errorf("adding ducati template to cells: %s", err)
+	}
+
+	err = t.addDucatiTemplate(manifest, "colocated_z")
+	if err != nil {
+		return fmt.Errorf("adding ducati template to colocated vm: %s", err)
 	}
 	return nil
 }
@@ -78,7 +83,7 @@ func setElement(el interface{}, key string, val interface{}) error {
 	return nil
 }
 
-func (t *Transformer) addDucatiTemplateToCells(manifest map[string]interface{}) error {
+func (t *Transformer) addDucatiTemplate(manifest map[string]interface{}, namePrefix string) error {
 	jobsVal, ok := manifest["jobs"]
 	if !ok {
 		return errors.New("missing key")
@@ -102,7 +107,7 @@ func (t *Transformer) addDucatiTemplateToCells(manifest map[string]interface{}) 
 		if !ok {
 			panic("name not a string")
 		}
-		if !strings.HasPrefix(name, "cell_z") {
+		if !strings.HasPrefix(name, namePrefix) {
 			continue
 		}
 		appended, err := t.AppendToSlice(templates,
