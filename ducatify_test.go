@@ -9,16 +9,16 @@ import (
 
 var _ = Describe("Transform", func() {
 	var (
-		manifest    map[string]interface{}
+		manifest    map[interface{}]interface{}
 		transformer *ducatify.Transformer
 	)
 
 	BeforeEach(func() {
 		transformer = ducatify.New()
-		manifest = map[string]interface{}{
+		manifest = map[interface{}]interface{}{
 			"releases": []interface{}{},
 			"jobs": []interface{}{
-				map[string]interface{}{
+				map[interface{}]interface{}{
 					"name":      "cell_z1",
 					"templates": []interface{}{},
 				},
@@ -31,25 +31,25 @@ var _ = Describe("Transform", func() {
 	Describe("modifying cell instance groups", func() {
 		BeforeEach(func() {
 			manifest["jobs"] = []interface{}{
-				map[string]interface{}{
+				map[interface{}]interface{}{
 					"name":      "cell_z1",
 					"instances": 3,
 					"templates": []interface{}{
-						map[string]interface{}{"name": "some-template", "release": "some-release"},
+						map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
 					},
 				},
-				map[string]interface{}{
+				map[interface{}]interface{}{
 					"name":      "cell_z2",
 					"instances": 5,
 					"templates": []interface{}{
-						map[string]interface{}{"name": "some-template", "release": "some-release"},
+						map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
 					},
 				},
-				map[string]interface{}{
+				map[interface{}]interface{}{
 					"name":      "colocated_z3",
 					"instances": 1,
 					"templates": []interface{}{
-						map[string]interface{}{"name": "some-template", "release": "some-release"},
+						map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
 					},
 				},
 			}
@@ -59,20 +59,20 @@ var _ = Describe("Transform", func() {
 			err := transformer.Transform(manifest)
 			Expect(err).NotTo(HaveOccurred())
 			jobs := manifest["jobs"].([]interface{})
-			Expect(jobs[0]).To(Equal(map[string]interface{}{
+			Expect(jobs[0]).To(Equal(map[interface{}]interface{}{
 				"name":      "cell_z1",
 				"instances": 3,
 				"templates": []interface{}{
-					map[string]interface{}{"name": "some-template", "release": "some-release"},
-					map[string]interface{}{"name": "ducati", "release": "ducati"},
+					map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
+					map[interface{}]interface{}{"name": "ducati", "release": "ducati"},
 				},
 			}))
-			Expect(jobs[1]).To(Equal(map[string]interface{}{
+			Expect(jobs[1]).To(Equal(map[interface{}]interface{}{
 				"name":      "cell_z2",
 				"instances": 5,
 				"templates": []interface{}{
-					map[string]interface{}{"name": "some-template", "release": "some-release"},
-					map[string]interface{}{"name": "ducati", "release": "ducati"},
+					map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
+					map[interface{}]interface{}{"name": "ducati", "release": "ducati"},
 				},
 			}))
 		})
@@ -81,11 +81,11 @@ var _ = Describe("Transform", func() {
 	Describe("modifying the colocated instance", func() {
 		BeforeEach(func() {
 			manifest["jobs"] = []interface{}{
-				map[string]interface{}{
+				map[interface{}]interface{}{
 					"name":      "colocated_z3",
 					"instances": 1,
 					"templates": []interface{}{
-						map[string]interface{}{"name": "some-template", "release": "some-release"},
+						map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
 					},
 				},
 			}
@@ -94,12 +94,12 @@ var _ = Describe("Transform", func() {
 			err := transformer.Transform(manifest)
 			Expect(err).NotTo(HaveOccurred())
 			jobs := manifest["jobs"].([]interface{})
-			Expect(jobs[0]).To(Equal(map[string]interface{}{
+			Expect(jobs[0]).To(Equal(map[interface{}]interface{}{
 				"name":      "colocated_z3",
 				"instances": 1,
 				"templates": []interface{}{
-					map[string]interface{}{"name": "some-template", "release": "some-release"},
-					map[string]interface{}{"name": "ducati", "release": "ducati"},
+					map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
+					map[interface{}]interface{}{"name": "ducati", "release": "ducati"},
 				},
 			}))
 		})
@@ -110,17 +110,17 @@ var _ = Describe("Transform", func() {
 			err := transformer.Transform(manifest)
 			Expect(err).NotTo(HaveOccurred())
 			jobs := manifest["jobs"].([]interface{})
-			Expect(jobs).To(ContainElement(map[string]interface{}{
+			Expect(jobs).To(ContainElement(map[interface{}]interface{}{
 				"name":            "ducati_db",
 				"instances":       1,
 				"persistent_disk": 256,
 				"resource_pool":   "database_z1",
 				"networks": []interface{}{
-					map[string]interface{}{"name": "diego1"},
+					map[interface{}]interface{}{"name": "diego1"},
 				},
 				"templates": []interface{}{
-					map[string]interface{}{"name": "postgres", "release": "ducati"},
-					map[string]interface{}{"name": "consul_agent", "release": "cf"},
+					map[interface{}]interface{}{"name": "postgres", "release": "ducati"},
+					map[interface{}]interface{}{"name": "consul_agent", "release": "cf"},
 				},
 			}))
 		})
@@ -129,8 +129,8 @@ var _ = Describe("Transform", func() {
 	Describe("updating releases", func() {
 		BeforeEach(func() {
 			manifest["releases"] = []interface{}{
-				map[string]interface{}{"name": "some-release", "version": "latest"},
-				map[string]interface{}{"name": "another-release", "version": "whatever"},
+				map[interface{}]interface{}{"name": "some-release", "version": "latest"},
+				map[interface{}]interface{}{"name": "another-release", "version": "whatever"},
 			}
 		})
 
@@ -141,13 +141,13 @@ var _ = Describe("Transform", func() {
 			Expect(manifest).To(HaveKey("releases"))
 			releases := manifest["releases"]
 			Expect(releases).To(ContainElement(
-				map[string]interface{}{"name": "some-release", "version": "latest"},
+				map[interface{}]interface{}{"name": "some-release", "version": "latest"},
 			))
 			Expect(releases).To(ContainElement(
-				map[string]interface{}{"name": "another-release", "version": "whatever"},
+				map[interface{}]interface{}{"name": "another-release", "version": "whatever"},
 			))
 			Expect(releases).To(ContainElement(
-				map[string]interface{}{"name": "ducati", "version": "latest"},
+				map[interface{}]interface{}{"name": "ducati", "version": "latest"},
 			))
 		})
 	})

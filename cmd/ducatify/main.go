@@ -31,7 +31,7 @@ func main() {
 }
 
 func transformBytes(vanillaBytes []byte) ([]byte, error) {
-	var manifest map[string]interface{}
+	var manifest map[interface{}]interface{}
 	err := yaml.Unmarshal(vanillaBytes, &manifest)
 	if err != nil {
 		return nil, err

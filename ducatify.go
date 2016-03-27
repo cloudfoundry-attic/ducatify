@@ -21,7 +21,7 @@ func New() *Transformer {
 	}
 }
 
-func (t *Transformer) Transform(manifest map[string]interface{}) error {
+func (t *Transformer) Transform(manifest map[interface{}]interface{}) error {
 	err := t.updateReleases(manifest)
 	if err != nil {
 		return fmt.Errorf("updating releases: %s", err)
@@ -50,7 +50,7 @@ func dynRecover(err *error) {
 	}
 }
 
-func (t *Transformer) addDucatiTemplate(manifest map[string]interface{}, namePrefix string) (err error) {
+func (t *Transformer) addDucatiTemplate(manifest map[interface{}]interface{}, namePrefix string) (err error) {
 	defer dynRecover(&err)
 
 	for _, jobVal := range manifest["jobs"].([]interface{}) {
@@ -67,7 +67,7 @@ func (t *Transformer) addDucatiTemplate(manifest map[string]interface{}, namePre
 			return err
 		}
 		templates = append(templates.([]interface{}),
-			map[string]interface{}{"name": "ducati", "release": "ducati"},
+			map[interface{}]interface{}{"name": "ducati", "release": "ducati"},
 		)
 
 		err = setElement(jobVal, "templates", templates)
@@ -79,33 +79,33 @@ func (t *Transformer) addDucatiTemplate(manifest map[string]interface{}, namePre
 	return nil
 }
 
-func (t *Transformer) addDucatiDBJob(manifest map[string]interface{}) (err error) {
+func (t *Transformer) addDucatiDBJob(manifest map[interface{}]interface{}) (err error) {
 	defer dynRecover(&err)
 
 	manifest["jobs"] = append(
 		manifest["jobs"].([]interface{}),
-		map[string]interface{}{
+		map[interface{}]interface{}{
 			"name":            "ducati_db",
 			"instances":       1,
 			"persistent_disk": t.DBPersistentDisk,
 			"resource_pool":   t.DBResourcePool,
 			"networks": []interface{}{
-				map[string]interface{}{"name": t.DBNetwork},
+				map[interface{}]interface{}{"name": t.DBNetwork},
 			},
 			"templates": []interface{}{
-				map[string]interface{}{"name": "postgres", "release": "ducati"},
-				map[string]interface{}{"name": "consul_agent", "release": "cf"},
+				map[interface{}]interface{}{"name": "postgres", "release": "ducati"},
+				map[interface{}]interface{}{"name": "consul_agent", "release": "cf"},
 			},
 		})
 	return nil
 }
 
-func (t *Transformer) updateReleases(manifest map[string]interface{}) (err error) {
+func (t *Transformer) updateReleases(manifest map[interface{}]interface{}) (err error) {
 	defer dynRecover(&err)
 
 	manifest["releases"] = append(
 		manifest["releases"].([]interface{}),
-		map[string]interface{}{
+		map[interface{}]interface{}{
 			"name":    "ducati",
 			"version": t.ReleaseVersion,
 		})
