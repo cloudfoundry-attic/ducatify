@@ -47,42 +47,6 @@ func (t *Transformer) Transform(manifest map[string]interface{}) error {
 	return nil
 }
 
-func getElement(el interface{}, key string) (interface{}, error) {
-	m, ok := el.(map[string]interface{})
-	if ok {
-		v, ok := m[key]
-		if ok {
-			return v, nil
-		} else {
-			return nil, fmt.Errorf("map missing key %s", key)
-		}
-	}
-	um, ok := el.(map[interface{}]interface{})
-	if !ok {
-		return nil, fmt.Errorf("unable to unpack %T", el)
-	}
-	v, ok := um[key]
-	if ok {
-		return v, nil
-	} else {
-		return nil, fmt.Errorf("map missing key %s", key)
-	}
-}
-
-func setElement(el interface{}, key string, val interface{}) error {
-	m, ok := el.(map[string]interface{})
-	if ok {
-		m[key] = val
-		return nil
-	}
-	um, ok := el.(map[interface{}]interface{})
-	if !ok {
-		return fmt.Errorf("unable to unpack %T", el)
-	}
-	um[key] = val
-	return nil
-}
-
 func (t *Transformer) addDucatiTemplate(manifest map[string]interface{}, namePrefix string) error {
 	jobsVal, ok := manifest["jobs"]
 	if !ok {
