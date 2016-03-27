@@ -1,13 +1,11 @@
 package ducatify
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 )
 
 type Transformer struct {
-	AppendToSlice    func(slice interface{}, toAppend interface{}) ([]interface{}, error)
 	ReleaseVersion   string
 	DBPersistentDisk int
 	DBResourcePool   string
@@ -16,7 +14,6 @@ type Transformer struct {
 
 func New() *Transformer {
 	return &Transformer{
-		AppendToSlice:    appendToSlice,
 		ReleaseVersion:   "latest",
 		DBPersistentDisk: 256,
 		DBResourcePool:   "database_z1",
@@ -47,95 +44,70 @@ func (t *Transformer) Transform(manifest map[string]interface{}) error {
 	return nil
 }
 
-func (t *Transformer) addDucatiTemplate(manifest map[string]interface{}, namePrefix string) error {
-	jobsVal, ok := manifest["jobs"]
-	if !ok {
-		return errors.New("missing key")
+func dynRecover(err *error) {
+	if e := recover(); e != nil {
+		*err = fmt.Errorf("recovered: %+v", e)
 	}
+}
 
-	jobsSlice, ok := jobsVal.([]interface{})
-	if !ok {
-		panic("input type not slice")
-	}
+func (t *Transformer) addDucatiTemplate(manifest map[string]interface{}, namePrefix string) (err error) {
+	defer dynRecover(&err)
 
-	for _, jobVal := range jobsSlice {
-		templates, err := getElement(jobVal, "templates")
-		if err != nil {
-			panic(err)
-		}
+	for _, jobVal := range manifest["jobs"].([]interface{}) {
 		nameVal, err := getElement(jobVal, "name")
 		if err != nil {
-			panic(err)
+			return err
 		}
-		name, ok := nameVal.(string)
-		if !ok {
-			panic("name not a string")
-		}
-		if !strings.HasPrefix(name, namePrefix) {
+		if !strings.HasPrefix(nameVal.(string), namePrefix) {
 			continue
 		}
-		appended, err := t.AppendToSlice(templates,
+
+		templates, err := getElement(jobVal, "templates")
+		if err != nil {
+			return err
+		}
+		templates = append(templates.([]interface{}),
 			map[string]interface{}{"name": "ducati", "release": "ducati"},
 		)
+
+		err = setElement(jobVal, "templates", templates)
 		if err != nil {
-			panic(err)
-		}
-		err = setElement(jobVal, "templates", appended)
-		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (t *Transformer) addDucatiDBJob(manifest map[string]interface{}) error {
-	jobsVal, ok := manifest["jobs"]
-	if !ok {
-		return errors.New("missing key")
-	}
-	var err error
-	manifest["jobs"], err = t.AppendToSlice(jobsVal, map[string]interface{}{
-		"name":            "ducati_db",
-		"instances":       1,
-		"persistent_disk": t.DBPersistentDisk,
-		"resource_pool":   t.DBResourcePool,
-		"networks": []interface{}{
-			map[string]interface{}{"name": t.DBNetwork},
-		},
-		"templates": []interface{}{
-			map[string]interface{}{"name": "postgres", "release": "ducati"},
-			map[string]interface{}{"name": "consul_agent", "release": "cf"},
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("adding job: %s", err)
-	}
+func (t *Transformer) addDucatiDBJob(manifest map[string]interface{}) (err error) {
+	defer dynRecover(&err)
+
+	manifest["jobs"] = append(
+		manifest["jobs"].([]interface{}),
+		map[string]interface{}{
+			"name":            "ducati_db",
+			"instances":       1,
+			"persistent_disk": t.DBPersistentDisk,
+			"resource_pool":   t.DBResourcePool,
+			"networks": []interface{}{
+				map[string]interface{}{"name": t.DBNetwork},
+			},
+			"templates": []interface{}{
+				map[string]interface{}{"name": "postgres", "release": "ducati"},
+				map[string]interface{}{"name": "consul_agent", "release": "cf"},
+			},
+		})
 	return nil
 }
 
-func (t *Transformer) updateReleases(manifest map[string]interface{}) error {
-	releasesVal, ok := manifest["releases"]
-	if !ok {
-		return errors.New("missing key")
-	}
-	var err error
-	manifest["releases"], err = t.AppendToSlice(releasesVal, map[string]interface{}{
-		"name":    "ducati",
-		"version": t.ReleaseVersion,
-	})
-	if err != nil {
-		return fmt.Errorf("adding release: %s", err)
-	}
+func (t *Transformer) updateReleases(manifest map[string]interface{}) (err error) {
+	defer dynRecover(&err)
 
+	manifest["releases"] = append(
+		manifest["releases"].([]interface{}),
+		map[string]interface{}{
+			"name":    "ducati",
+			"version": t.ReleaseVersion,
+		})
 	return nil
-}
-
-func appendToSlice(toModify interface{}, toAppend interface{}) ([]interface{}, error) {
-	asSlice, ok := toModify.([]interface{})
-	if !ok {
-		panic("input type not slice")
-	}
-	asSlice = append(asSlice, toAppend)
-	return asSlice, nil
 }

@@ -31,3 +31,12 @@ func setElement(el interface{}, key string, val interface{}) error {
 	}
 	return fmt.Errorf("unable to unpack %T", el)
 }
+
+func appendToSlice(toModify interface{}, toAppend interface{}) ([]interface{}, error) {
+	asSlice, ok := toModify.([]interface{})
+	if !ok {
+		panic("input type not slice")
+	}
+	asSlice = append(asSlice, toAppend)
+	return asSlice, nil
+}
