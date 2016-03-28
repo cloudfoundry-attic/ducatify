@@ -60,6 +60,10 @@ var _ = Describe("Manifest transformer", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	It("generates the expected output", func() {
+		Expect(actualOutput).To(Equal(expectedOutput))
+	})
+
 	It("outputs the same top-level keys as the input file", func() {
 		getKeys := func(m map[string]interface{}) []string {
 			keys := []string{}
@@ -118,15 +122,15 @@ var _ = Describe("Manifest transformer", func() {
 		Expect(actualJob).To(Equal(expectedJob))
 	})
 
-	It("transforms the jobs as required", func() {
-		key := "jobs"
-		Expect(actualOutput).To(HaveKey(key))
-		Expect(actualOutput[key]).To(Equal(expectedOutput[key]))
+	It("adds new garden properties", func() {
+		actualGardenProps := actualOutput["properties"].(map[interface{}]interface{})["garden"]
+		expectedGardenProps := expectedOutput["properties"].(map[interface{}]interface{})["garden"]
+		Expect(actualGardenProps).To(Equal(expectedGardenProps))
 	})
 
-	XIt("transforms the properties as required", func() {
-		key := "properties"
-		Expect(actualOutput).To(HaveKey(key))
-		Expect(actualOutput[key]).To(Equal(expectedOutput[key]))
+	It("adds ducati properties", func() {
+		actualDucatiProps := actualOutput["properties"].(map[interface{}]interface{})["ducati"]
+		expectedDucatiProps := expectedOutput["properties"].(map[interface{}]interface{})["ducati"]
+		Expect(actualDucatiProps).To(Equal(expectedDucatiProps))
 	})
 })

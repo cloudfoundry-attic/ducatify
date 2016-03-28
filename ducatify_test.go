@@ -23,6 +23,12 @@ var _ = Describe("Transform", func() {
 					"templates": []interface{}{},
 				},
 			},
+			"properties": map[interface{}]interface{}{
+				"something": "whatever",
+				"garden": map[interface{}]interface{}{
+					"a_thing": "a_value",
+				},
+			},
 		}
 	})
 
@@ -152,4 +158,60 @@ var _ = Describe("Transform", func() {
 		})
 	})
 
+	Describe("adding garden properties", func() {
+		It("sets the network plugin properties", func() {
+			err := transformer.Transform(manifest)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(manifest["properties"]).To(HaveKeyWithValue("garden",
+				map[interface{}]interface{}{
+					"a_thing": "a_value",
+					"shared_mounts": []string{
+						"/var/vcap/data/ducati/container-netns",
+					},
+					"network_plugin": "/var/vcap/packages/ducati/bin/guardian-cni-adapter",
+					"network_plugin_extra_args": []string{
+						"--configFile=/var/vcap/jobs/ducati/config/adapter.json",
+					},
+				}))
+		})
+	})
+
+	Describe("adding ducati properties", func() {
+		It("adds properties for ducati", func() {
+			err := transformer.Transform(manifest)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(manifest["properties"]).To(HaveKeyWithValue("ducati",
+				map[interface{}]interface{}{
+					"daemon": map[interface{}]interface{}{
+						"database": map[interface{}]interface{}{
+							"username": "ducati_daemon",
+							"password": "some-password",
+							"name":     "ducati",
+							"ssl_mode": "disable",
+							"host":     "container-network-db.service.cf.internal",
+							"port":     5432,
+						},
+					},
+					"database": map[interface{}]interface{}{
+						"db_scheme": "postgres",
+						"port":      5432,
+						"databases": []interface{}{
+							map[interface{}]interface{}{
+								"name": "ducati", "tag": "whatever",
+							},
+						},
+						"roles": []interface{}{
+							map[interface{}]interface{}{
+								"name":     "ducati_daemon",
+								"password": "some-password",
+								"tag":      "admin",
+							},
+						},
+					},
+				},
+			))
+		})
+	})
 })

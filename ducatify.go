@@ -6,10 +6,17 @@ import (
 )
 
 type Transformer struct {
-	ReleaseVersion   string
-	DBPersistentDisk int
-	DBResourcePool   string
-	DBNetwork        string
+	ReleaseVersion               string
+	DBPersistentDisk             int
+	DBResourcePool               string
+	DBNetwork                    string
+	GardenSharedMounts           []string
+	GardenNetworkPlugin          string
+	GardenNetworkPluginExtraArgs []string
+	DBName                       string
+	DBUsername                   string
+	DBPassword                   string
+	DBSSLMode                    string
 }
 
 func New() *Transformer {
@@ -18,6 +25,15 @@ func New() *Transformer {
 		DBPersistentDisk: 256,
 		DBResourcePool:   "database_z1",
 		DBNetwork:        "diego1",
+
+		DBName:     "ducati",
+		DBUsername: "ducati_daemon",
+		DBPassword: "some-password",
+		DBSSLMode:  "disable",
+
+		GardenSharedMounts:           []string{"/var/vcap/data/ducati/container-netns"},
+		GardenNetworkPlugin:          "/var/vcap/packages/ducati/bin/guardian-cni-adapter",
+		GardenNetworkPluginExtraArgs: []string{"--configFile=/var/vcap/jobs/ducati/config/adapter.json"},
 	}
 }
 
@@ -40,6 +56,16 @@ func (t *Transformer) Transform(manifest map[interface{}]interface{}) error {
 	err = t.addDucatiTemplate(manifest, "colocated_z")
 	if err != nil {
 		return fmt.Errorf("adding ducati template to colocated vm: %s", err)
+	}
+
+	err = t.addGardenProperties(manifest)
+	if err != nil {
+		return fmt.Errorf("adding garden properties: %s", err)
+	}
+
+	err = t.addDucatiProperties(manifest)
+	if err != nil {
+		return fmt.Errorf("adding garden properties: %s", err)
 	}
 	return nil
 }
@@ -109,5 +135,48 @@ func (t *Transformer) updateReleases(manifest map[interface{}]interface{}) (err 
 			"name":    "ducati",
 			"version": t.ReleaseVersion,
 		})
+	return nil
+}
+
+func (t *Transformer) addGardenProperties(manifest map[interface{}]interface{}) (err error) {
+	defer dynRecover(&err)
+	gardenProps := manifest["properties"].(map[interface{}]interface{})["garden"].(map[interface{}]interface{})
+	gardenProps["network_plugin"] = t.GardenNetworkPlugin
+	gardenProps["network_plugin_extra_args"] = t.GardenNetworkPluginExtraArgs
+	gardenProps["shared_mounts"] = t.GardenSharedMounts
+	return nil
+}
+
+func (t *Transformer) addDucatiProperties(manifest map[interface{}]interface{}) (err error) {
+	defer dynRecover(&err)
+	props := manifest["properties"].(map[interface{}]interface{})
+	props["ducati"] = map[interface{}]interface{}{
+		"daemon": map[interface{}]interface{}{
+			"database": map[interface{}]interface{}{
+				"username": t.DBUsername,
+				"password": t.DBPassword,
+				"name":     t.DBName,
+				"ssl_mode": t.DBSSLMode,
+				"host":     "container-network-db.service.cf.internal",
+				"port":     5432,
+			},
+		},
+		"database": map[interface{}]interface{}{
+			"db_scheme": "postgres",
+			"port":      5432,
+			"databases": []interface{}{
+				map[interface{}]interface{}{
+					"name": t.DBName, "tag": "whatever",
+				},
+			},
+			"roles": []interface{}{
+				map[interface{}]interface{}{
+					"name":     t.DBUsername,
+					"password": t.DBPassword,
+					"tag":      "admin",
+				},
+			},
+		},
+	}
 	return nil
 }
