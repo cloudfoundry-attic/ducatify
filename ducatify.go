@@ -38,12 +38,18 @@ func New() *Transformer {
 }
 
 func (t *Transformer) Transform(manifest map[interface{}]interface{}) error {
-	err := t.updateReleases(manifest)
+
+	dbHost, err := extractDBHostProperty(manifest)
+	if err != nil {
+		return err
+	}
+
+	err = t.updateReleases(manifest)
 	if err != nil {
 		return fmt.Errorf("updating releases: %s", err)
 	}
 
-	err = t.addDucatiDBJob(manifest)
+	err = t.addDucatiDBJob(dbHost, manifest)
 	if err != nil {
 		return fmt.Errorf("adding ducati_db job: %s", err)
 	}
@@ -63,7 +69,7 @@ func (t *Transformer) Transform(manifest map[interface{}]interface{}) error {
 		return fmt.Errorf("adding garden properties: %s", err)
 	}
 
-	err = t.addDucatiProperties(manifest)
+	err = t.addDucatiProperties(dbHost, manifest)
 	if err != nil {
 		return fmt.Errorf("adding garden properties: %s", err)
 	}
@@ -105,7 +111,7 @@ func (t *Transformer) addDucatiTemplate(manifest map[interface{}]interface{}, na
 	return nil
 }
 
-func (t *Transformer) addDucatiDBJob(manifest map[interface{}]interface{}) (err error) {
+func (t *Transformer) addDucatiDBJob(staticIP string, manifest map[interface{}]interface{}) (err error) {
 	defer dynRecover(&err)
 
 	manifest["jobs"] = append(
@@ -116,11 +122,13 @@ func (t *Transformer) addDucatiDBJob(manifest map[interface{}]interface{}) (err 
 			"persistent_disk": t.DBPersistentDisk,
 			"resource_pool":   t.DBResourcePool,
 			"networks": []interface{}{
-				map[interface{}]interface{}{"name": t.DBNetwork},
+				map[interface{}]interface{}{
+					"name":       t.DBNetwork,
+					"static_ips": []interface{}{staticIP},
+				},
 			},
 			"templates": []interface{}{
 				map[interface{}]interface{}{"name": "postgres", "release": "ducati"},
-				map[interface{}]interface{}{"name": "consul_agent", "release": "cf"},
 			},
 		})
 	return nil
@@ -147,8 +155,9 @@ func (t *Transformer) addGardenProperties(manifest map[interface{}]interface{}) 
 	return nil
 }
 
-func (t *Transformer) addDucatiProperties(manifest map[interface{}]interface{}) (err error) {
+func (t *Transformer) addDucatiProperties(dbHost string, manifest map[interface{}]interface{}) (err error) {
 	defer dynRecover(&err)
+
 	props := manifest["properties"].(map[interface{}]interface{})
 	props["ducati"] = map[interface{}]interface{}{
 		"daemon": map[interface{}]interface{}{
@@ -157,7 +166,7 @@ func (t *Transformer) addDucatiProperties(manifest map[interface{}]interface{}) 
 				"password": t.DBPassword,
 				"name":     t.DBName,
 				"ssl_mode": t.DBSSLMode,
-				"host":     "container-network-db.service.cf.internal",
+				"host":     dbHost,
 				"port":     5432,
 			},
 		},
@@ -178,5 +187,22 @@ func (t *Transformer) addDucatiProperties(manifest map[interface{}]interface{}) 
 			},
 		},
 	}
+
 	return nil
+}
+
+func extractDBHostProperty(manifest map[interface{}]interface{}) (str string, err error) {
+	defer dynRecover(&err)
+
+	networks := manifest["networks"].([]interface{})[0].(map[interface{}]interface{})
+	subnets := networks["subnets"].([]interface{})[0].(map[interface{}]interface{})
+	ip_range := subnets["static"].([]interface{})[0].(string)
+
+	ips := strings.Split(ip_range, "-")
+	ip := strings.Trim(ips[0], " ")
+	if ip == "" {
+		return "", fmt.Errorf("could not parse static ip range from %s", ip_range)
+	}
+
+	return ip, nil
 }

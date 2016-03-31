@@ -29,6 +29,16 @@ var _ = Describe("Transform", func() {
 					"a_thing": "a_value",
 				},
 			},
+			"networks": []interface{}{
+				map[interface{}]interface{}{
+					"name": "diego1",
+					"subnets": []interface{}{
+						map[interface{}]interface{}{
+							"static": []interface{}{"10.10.5.10 - 10.10.5.63"},
+						},
+					},
+				},
+			},
 		}
 	})
 
@@ -122,11 +132,13 @@ var _ = Describe("Transform", func() {
 				"persistent_disk": 256,
 				"resource_pool":   "database_z1",
 				"networks": []interface{}{
-					map[interface{}]interface{}{"name": "diego1"},
+					map[interface{}]interface{}{
+						"name":       "diego1",
+						"static_ips": []interface{}{"10.10.5.10"},
+					},
 				},
 				"templates": []interface{}{
 					map[interface{}]interface{}{"name": "postgres", "release": "ducati"},
-					map[interface{}]interface{}{"name": "consul_agent", "release": "cf"},
 				},
 			}))
 		})
@@ -190,7 +202,7 @@ var _ = Describe("Transform", func() {
 							"password": "some-password",
 							"name":     "ducati",
 							"ssl_mode": "disable",
-							"host":     "container-network-db.service.cf.internal",
+							"host":     "10.10.5.10",
 							"port":     5432,
 						},
 					},
@@ -212,6 +224,47 @@ var _ = Describe("Transform", func() {
 					},
 				},
 			))
+		})
+
+		Context("when there are errors", func() {
+			Context("finding networks key", func() {
+				It("returns reported error", func() {
+					delete(manifest, "networks")
+
+					err := transformer.Transform(manifest)
+					Expect(err).To(MatchError("recovered: interface conversion: interface is nil, not []interface {}"))
+				})
+			})
+
+			Context("finding subnets key in networks", func() {
+				It("returns reported error", func() {
+					networks := manifest["networks"].([]interface{})[0].(map[interface{}]interface{})
+					delete(networks, "subnets")
+
+					err := transformer.Transform(manifest)
+					Expect(err).To(MatchError("recovered: interface conversion: interface is nil, not []interface {}"))
+				})
+			})
+
+			Context("finding static key in subnets", func() {
+				It("returns reported error", func() {
+					subnets := manifest["networks"].([]interface{})[0].(map[interface{}]interface{})["subnets"].([]interface{})[0].(map[interface{}]interface{})
+					delete(subnets, "static")
+
+					err := transformer.Transform(manifest)
+					Expect(err).To(MatchError("recovered: interface conversion: interface is nil, not []interface {}"))
+				})
+			})
+
+			Context("parsing static ip range", func() {
+				It("returns reported error", func() {
+					subnets := manifest["networks"].([]interface{})[0].(map[interface{}]interface{})["subnets"].([]interface{})[0].(map[interface{}]interface{})
+					subnets["static"] = []interface{}{""}
+
+					err := transformer.Transform(manifest)
+					Expect(err).To(MatchError("could not parse static ip range from "))
+				})
+			})
 		})
 	})
 })

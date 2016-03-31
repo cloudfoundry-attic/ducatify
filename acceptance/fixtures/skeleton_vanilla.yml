@@ -130,7 +130,8 @@ networks:
     range: 10.244.16.0/24
     reserved:
     - 10.244.16.1
-    static: []
+    static:
+    - 10.244.16.10 - 10.244.16.20
 - name: diego2
   type: manual
   subnets:
