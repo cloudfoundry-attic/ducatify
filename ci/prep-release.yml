@@ -1,0 +1,19 @@
+---
+image: docker:///golang
+
+platform: linux
+
+inputs:
+  - name: ducatify-source
+  - name: version
+
+outputs:
+  - name: binaries
+  - name: release-notes
+
+run:
+  path: ducatify-source/ci/prep-release.sh
+
+params:
+  GIT_USER_EMAIL: cf-container-networking+ci@pivotal.io
+  GIT_USER_NAME: Container Networking CI Bot

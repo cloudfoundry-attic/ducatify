@@ -1,0 +1,50 @@
+resources:
+  - name: ducatify-source
+    type: git
+    source:
+      uri: git://github.com/cloudfoundry-incubator/ducatify
+      branch: master
+
+  - name: version
+    type: semver
+    source:
+      driver: git
+      uri: git@github.com:cloudfoundry-incubator/ducatify
+      branch: version
+      file: version
+      private_key: {{ducatify_deploy_key}}
+
+  - name: github-release
+    type: github-release
+    source:
+      user: cloudfoundry-incubator
+      repository: ducatify
+      access_token: {{github-access-token}}
+      drafts: true
+
+jobs:
+  - name: test
+    plan:
+      - get: ducatify-source
+        trigger: true
+      - task: test
+        file: ducatify-source/ci/test.yml
+
+  - name: shipit
+    plan:
+      - aggregate:
+        - get: ducatify-source
+          passed: [test]
+        - get: version
+          params: {bump: minor}
+      - task: prep-release
+        file: ducatify-source/ci/prep-release.yml
+      - put: github-release
+        params:
+          name: release-notes/name
+          tag: release-notes/name
+          commitish: release-notes/commitish
+          globs:
+            - binaries/*
+      - put: version
+        params: { file: version/number }
