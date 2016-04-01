@@ -1,0 +1,12 @@
+---
+image: docker:///golang
+
+platform: linux
+
+inputs:
+  - name: ducatify-source
+
+run:
+  path: ducatify-source/ci/test.sh
+
+params: {}
