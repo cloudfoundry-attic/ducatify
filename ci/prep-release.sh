@@ -14,7 +14,7 @@ cd go
 export GOPATH=$PWD
 export PATH=$PATH:$GOPATH/bin
 
-cd src/github.com/cloudfoundry-incubator/ducatify
+cd src/github.com/cloudfoundry-incubator/ducatify/cmd/ducatify
 
 for GOOS in linux darwin windows; do
   go build -o $OUT_BINARIES/ducatify-$GOOS &
