@@ -15,5 +15,5 @@ run:
   path: ducatify-source/ci/prep-release.sh
 
 params:
-  GIT_USER_EMAIL: cf-container-networking+ci@pivotal.io
-  GIT_USER_NAME: Container Networking CI Bot
+  GIT_USER_EMAIL: ~
+  GIT_USER_NAME: ~
