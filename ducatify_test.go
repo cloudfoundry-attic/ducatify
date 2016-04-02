@@ -227,42 +227,52 @@ var _ = Describe("Transform", func() {
 		})
 
 		Context("when there are errors", func() {
-			Context("finding networks key", func() {
+			Context("when there is no networks key", func() {
 				It("returns reported error", func() {
 					delete(manifest, "networks")
 
 					err := transformer.Transform(manifest)
-					Expect(err).To(MatchError("recovered: interface conversion: interface is nil, not []interface {}"))
+					Expect(err).To(MatchError("extract db host property: interface conversion: interface is nil, not []interface {}"))
 				})
 			})
 
-			Context("finding subnets key in networks", func() {
+			Context("when the network has no subnets", func() {
 				It("returns reported error", func() {
 					networks := manifest["networks"].([]interface{})[0].(map[interface{}]interface{})
 					delete(networks, "subnets")
 
 					err := transformer.Transform(manifest)
-					Expect(err).To(MatchError("recovered: interface conversion: interface is nil, not []interface {}"))
+					Expect(err).To(MatchError("extract db host property: interface conversion: interface is nil, not []interface {}"))
 				})
 			})
 
-			Context("finding static key in subnets", func() {
+			Context("when the subnet has no 'static' key", func() {
 				It("returns reported error", func() {
 					subnets := manifest["networks"].([]interface{})[0].(map[interface{}]interface{})["subnets"].([]interface{})[0].(map[interface{}]interface{})
 					delete(subnets, "static")
 
 					err := transformer.Transform(manifest)
-					Expect(err).To(MatchError("recovered: interface conversion: interface is nil, not []interface {}"))
+					Expect(err).To(MatchError("extract db host property: interface conversion: interface is nil, not []interface {}"))
 				})
 			})
 
-			Context("parsing static ip range", func() {
+			Context("when the static value is the empty list", func() {
+				It("returns reported error", func() {
+					subnets := manifest["networks"].([]interface{})[0].(map[interface{}]interface{})["subnets"].([]interface{})[0].(map[interface{}]interface{})
+					subnets["static"] = []interface{}{}
+
+					err := transformer.Transform(manifest)
+					Expect(err).To(MatchError(`extract db host property: no static ips available in "diego1"`))
+				})
+			})
+
+			Context("when the static value is the empty string", func() {
 				It("returns reported error", func() {
 					subnets := manifest["networks"].([]interface{})[0].(map[interface{}]interface{})["subnets"].([]interface{})[0].(map[interface{}]interface{})
 					subnets["static"] = []interface{}{""}
 
 					err := transformer.Transform(manifest)
-					Expect(err).To(MatchError("could not parse static ip range from "))
+					Expect(err).To(MatchError(`extract db host property: could not parse static ip range from ""`))
 				})
 			})
 		})
