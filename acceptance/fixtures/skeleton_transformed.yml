@@ -14,10 +14,20 @@ jobs:
   resource_pool: database_z1
   networks:
   - name: diego1
-    static_ips: [ 10.244.16.10 ]
   templates:
   - name: postgres
     release: ducati
+  - name: consul_agent
+    release: cf
+  properties:
+    consul:
+      agent:
+        services:
+          ducati-db:
+            name: ducati-db
+            check:
+              script: /bin/true
+              interval: 5s
 - instances: 1
   name: cell_z1
   networks:
@@ -201,7 +211,7 @@ properties:
   ducati:
     daemon:
       database:
-        host: 10.244.16.10
+        host: ducati-db.service.cf.internal
         port: 5432
         username: ducati_daemon
         password: some-password

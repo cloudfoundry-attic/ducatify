@@ -146,12 +146,27 @@ var _ = Describe("Transform", func() {
 				"resource_pool":   "database_z1",
 				"networks": []interface{}{
 					map[interface{}]interface{}{
-						"name":       "diego1",
-						"static_ips": []interface{}{"10.10.5.10"},
+						"name": "diego1",
 					},
 				},
 				"templates": []interface{}{
 					map[interface{}]interface{}{"name": "postgres", "release": "ducati"},
+					map[interface{}]interface{}{"name": "consul_agent", "release": "cf"},
+				},
+				"properties": map[interface{}]interface{}{
+					"consul": map[interface{}]interface{}{
+						"agent": map[interface{}]interface{}{
+							"services": map[interface{}]interface{}{
+								"ducati-db": map[interface{}]interface{}{
+									"name": "ducati-db",
+									"check": map[interface{}]interface{}{
+										"script":   "/bin/true",
+										"interval": "5s",
+									},
+								},
+							},
+						},
+					},
 				},
 			}))
 		})
@@ -215,7 +230,7 @@ var _ = Describe("Transform", func() {
 							"password": "some-password",
 							"name":     "ducati",
 							"ssl_mode": "disable",
-							"host":     "10.10.5.10",
+							"host":     "ducati-db.service.cf.internal",
 							"port":     5432,
 						},
 					},
@@ -239,55 +254,5 @@ var _ = Describe("Transform", func() {
 			))
 		})
 
-		Context("when there are errors", func() {
-			Context("when there is no networks key", func() {
-				It("returns reported error", func() {
-					delete(manifest, "networks")
-
-					err := transformer.Transform(manifest)
-					Expect(err).To(MatchError("extract db host property: interface conversion: interface is nil, not []interface {}"))
-				})
-			})
-
-			Context("when the network has no subnets", func() {
-				It("returns reported error", func() {
-					networks := manifest["networks"].([]interface{})[0].(map[interface{}]interface{})
-					delete(networks, "subnets")
-
-					err := transformer.Transform(manifest)
-					Expect(err).To(MatchError("extract db host property: interface conversion: interface is nil, not []interface {}"))
-				})
-			})
-
-			Context("when the subnet has no 'static' key", func() {
-				It("returns reported error", func() {
-					subnets := manifest["networks"].([]interface{})[0].(map[interface{}]interface{})["subnets"].([]interface{})[0].(map[interface{}]interface{})
-					delete(subnets, "static")
-
-					err := transformer.Transform(manifest)
-					Expect(err).To(MatchError("extract db host property: interface conversion: interface is nil, not []interface {}"))
-				})
-			})
-
-			Context("when the static value is the empty list", func() {
-				It("returns reported error", func() {
-					subnets := manifest["networks"].([]interface{})[0].(map[interface{}]interface{})["subnets"].([]interface{})[0].(map[interface{}]interface{})
-					subnets["static"] = []interface{}{}
-
-					err := transformer.Transform(manifest)
-					Expect(err).To(MatchError(`extract db host property: no static ips available in "diego1"`))
-				})
-			})
-
-			Context("when the static value is the empty string", func() {
-				It("returns reported error", func() {
-					subnets := manifest["networks"].([]interface{})[0].(map[interface{}]interface{})["subnets"].([]interface{})[0].(map[interface{}]interface{})
-					subnets["static"] = []interface{}{""}
-
-					err := transformer.Transform(manifest)
-					Expect(err).To(MatchError(`extract db host property: could not parse static ip range from ""`))
-				})
-			})
-		})
 	})
 })

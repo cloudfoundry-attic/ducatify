@@ -39,17 +39,12 @@ func New() *Transformer {
 }
 
 func (t *Transformer) Transform(manifest map[interface{}]interface{}) error {
-	dbHost, err := extractDBHostProperty(manifest)
-	if err != nil {
-		return err
-	}
-
-	err = t.updateReleases(manifest)
+	err := t.updateReleases(manifest)
 	if err != nil {
 		return fmt.Errorf("updating releases: %s", err)
 	}
 
-	err = t.addDucatiDBJob(dbHost, manifest)
+	err = t.addDucatiDBJob(manifest)
 	if err != nil {
 		return fmt.Errorf("adding ducati_db job: %s", err)
 	}
@@ -69,7 +64,7 @@ func (t *Transformer) Transform(manifest map[interface{}]interface{}) error {
 		return fmt.Errorf("adding garden properties: %s", err)
 	}
 
-	err = t.addDucatiProperties(dbHost, manifest)
+	err = t.addDucatiProperties(manifest)
 	if err != nil {
 		return fmt.Errorf("adding garden properties: %s", err)
 	}
@@ -111,7 +106,7 @@ func (t *Transformer) addDucatiTemplate(manifest map[interface{}]interface{}, na
 	return nil
 }
 
-func (t *Transformer) addDucatiDBJob(staticIP string, manifest map[interface{}]interface{}) (err error) {
+func (t *Transformer) addDucatiDBJob(manifest map[interface{}]interface{}) (err error) {
 	defer dynRecover("add ducati db job", &err)
 
 	ducatiDBJob := map[interface{}]interface{}{
@@ -121,12 +116,27 @@ func (t *Transformer) addDucatiDBJob(staticIP string, manifest map[interface{}]i
 		"resource_pool":   t.DBResourcePool,
 		"networks": []interface{}{
 			map[interface{}]interface{}{
-				"name":       t.DBNetwork,
-				"static_ips": []interface{}{staticIP},
+				"name": t.DBNetwork,
 			},
 		},
 		"templates": []interface{}{
 			map[interface{}]interface{}{"name": "postgres", "release": "ducati"},
+			map[interface{}]interface{}{"name": "consul_agent", "release": "cf"},
+		},
+		"properties": map[interface{}]interface{}{
+			"consul": map[interface{}]interface{}{
+				"agent": map[interface{}]interface{}{
+					"services": map[interface{}]interface{}{
+						"ducati-db": map[interface{}]interface{}{
+							"name": "ducati-db",
+							"check": map[interface{}]interface{}{
+								"script":   "/bin/true",
+								"interval": "5s",
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -168,7 +178,7 @@ func (t *Transformer) addGardenProperties(manifest map[interface{}]interface{}) 
 	return nil
 }
 
-func (t *Transformer) addDucatiProperties(dbHost string, manifest map[interface{}]interface{}) (err error) {
+func (t *Transformer) addDucatiProperties(manifest map[interface{}]interface{}) (err error) {
 	defer dynRecover("add ducati properties", &err)
 
 	props := manifest["properties"].(map[interface{}]interface{})
@@ -179,7 +189,7 @@ func (t *Transformer) addDucatiProperties(dbHost string, manifest map[interface{
 				"password": t.DBPassword,
 				"name":     t.DBName,
 				"ssl_mode": t.DBSSLMode,
-				"host":     dbHost,
+				"host":     "ducati-db.service.cf.internal",
 				"port":     5432,
 			},
 		},
@@ -202,26 +212,4 @@ func (t *Transformer) addDucatiProperties(dbHost string, manifest map[interface{
 	}
 
 	return nil
-}
-
-func extractDBHostProperty(manifest map[interface{}]interface{}) (str string, err error) {
-	const errContext = "extract db host property"
-	defer dynRecover(errContext, &err)
-
-	networks := manifest["networks"].([]interface{})[0].(map[interface{}]interface{})
-	subnets := networks["subnets"].([]interface{})[0].(map[interface{}]interface{})
-	static := subnets["static"].([]interface{})
-	if len(static) == 0 {
-		return "", fmt.Errorf("%s: no static ips available in %q", errContext, networks["name"])
-	}
-
-	ip_range := static[0].(string)
-
-	ips := strings.Split(ip_range, "-")
-	ip := strings.Trim(ips[0], " ")
-	if ip == "" {
-		return "", fmt.Errorf("%s: could not parse static ip range from %q", errContext, ip_range)
-	}
-
-	return ip, nil
 }
