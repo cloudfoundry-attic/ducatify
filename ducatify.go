@@ -1,6 +1,7 @@
 package ducatify
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -113,23 +114,36 @@ func (t *Transformer) addDucatiTemplate(manifest map[interface{}]interface{}, na
 func (t *Transformer) addDucatiDBJob(staticIP string, manifest map[interface{}]interface{}) (err error) {
 	defer dynRecover("add ducati db job", &err)
 
-	manifest["jobs"] = append(
-		manifest["jobs"].([]interface{}),
-		map[interface{}]interface{}{
-			"name":            "ducati_db",
-			"instances":       1,
-			"persistent_disk": t.DBPersistentDisk,
-			"resource_pool":   t.DBResourcePool,
-			"networks": []interface{}{
-				map[interface{}]interface{}{
-					"name":       t.DBNetwork,
-					"static_ips": []interface{}{staticIP},
-				},
+	ducatiDBJob := map[interface{}]interface{}{
+		"name":            "ducati_db",
+		"instances":       1,
+		"persistent_disk": t.DBPersistentDisk,
+		"resource_pool":   t.DBResourcePool,
+		"networks": []interface{}{
+			map[interface{}]interface{}{
+				"name":       t.DBNetwork,
+				"static_ips": []interface{}{staticIP},
 			},
-			"templates": []interface{}{
-				map[interface{}]interface{}{"name": "postgres", "release": "ducati"},
-			},
-		})
+		},
+		"templates": []interface{}{
+			map[interface{}]interface{}{"name": "postgres", "release": "ducati"},
+		},
+	}
+
+	oldJobs := manifest["jobs"].([]interface{})
+	newJobs := []interface{}{}
+	for _, job := range oldJobs {
+		newJobs = append(newJobs, job)
+		if job.(map[interface{}]interface{})["name"] == "database_z1" {
+			newJobs = append(newJobs, ducatiDBJob)
+		}
+	}
+	if len(newJobs) == len(oldJobs) {
+		return errors.New("database_z1 job not found, don't know where to put the ducati_db job")
+	}
+
+	manifest["jobs"] = newJobs
+
 	return nil
 }
 

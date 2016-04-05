@@ -19,6 +19,10 @@ var _ = Describe("Transform", func() {
 			"releases": []interface{}{},
 			"jobs": []interface{}{
 				map[interface{}]interface{}{
+					"name":      "database_z1",
+					"templates": []interface{}{},
+				},
+				map[interface{}]interface{}{
 					"name":      "cell_z1",
 					"templates": []interface{}{},
 				},
@@ -48,6 +52,10 @@ var _ = Describe("Transform", func() {
 		BeforeEach(func() {
 			manifest["jobs"] = []interface{}{
 				map[interface{}]interface{}{
+					"name":      "database_z1",
+					"instances": 1,
+				},
+				map[interface{}]interface{}{
 					"name":      "cell_z1",
 					"instances": 3,
 					"templates": []interface{}{
@@ -75,7 +83,7 @@ var _ = Describe("Transform", func() {
 			err := transformer.Transform(manifest)
 			Expect(err).NotTo(HaveOccurred())
 			jobs := manifest["jobs"].([]interface{})
-			Expect(jobs[0]).To(Equal(map[interface{}]interface{}{
+			Expect(jobs[2]).To(Equal(map[interface{}]interface{}{
 				"name":      "cell_z1",
 				"instances": 3,
 				"templates": []interface{}{
@@ -83,7 +91,7 @@ var _ = Describe("Transform", func() {
 					map[interface{}]interface{}{"name": "ducati", "release": "ducati"},
 				},
 			}))
-			Expect(jobs[1]).To(Equal(map[interface{}]interface{}{
+			Expect(jobs[3]).To(Equal(map[interface{}]interface{}{
 				"name":      "cell_z2",
 				"instances": 5,
 				"templates": []interface{}{
@@ -98,6 +106,10 @@ var _ = Describe("Transform", func() {
 		BeforeEach(func() {
 			manifest["jobs"] = []interface{}{
 				map[interface{}]interface{}{
+					"name":      "database_z1",
+					"instances": 1,
+				},
+				map[interface{}]interface{}{
 					"name":      "colocated_z3",
 					"instances": 1,
 					"templates": []interface{}{
@@ -106,11 +118,12 @@ var _ = Describe("Transform", func() {
 				},
 			}
 		})
+
 		It("colocates ducati template onto the 'colocated' job", func() {
 			err := transformer.Transform(manifest)
 			Expect(err).NotTo(HaveOccurred())
 			jobs := manifest["jobs"].([]interface{})
-			Expect(jobs[0]).To(Equal(map[interface{}]interface{}{
+			Expect(jobs[2]).To(Equal(map[interface{}]interface{}{
 				"name":      "colocated_z3",
 				"instances": 1,
 				"templates": []interface{}{

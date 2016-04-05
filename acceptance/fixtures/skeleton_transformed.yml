@@ -1,4 +1,23 @@
 jobs:
+- name: database_z1
+  instances: 1
+  persistent_disk: 256
+  resource_pool: database_z1
+  networks:
+  - name: diego1
+  templates:
+  - name: bbs
+    release: diego
+- name: ducati_db
+  instances: 1
+  persistent_disk: 256
+  resource_pool: database_z1
+  networks:
+  - name: diego1
+    static_ips: [ 10.244.16.10 ]
+  templates:
+  - name: postgres
+    release: ducati
 - instances: 1
   name: cell_z1
   networks:
@@ -127,16 +146,6 @@ jobs:
   update:
     max_in_flight: 1
     serial: true
-- name: ducati_db
-  instances: 1
-  persistent_disk: 256
-  resource_pool: database_z1
-  networks:
-  - name: diego1
-    static_ips: [ 10.244.16.10 ]
-  templates:
-  - name: postgres
-    release: ducati
 name: cf-warden-diego
 networks:
 - name: diego1
