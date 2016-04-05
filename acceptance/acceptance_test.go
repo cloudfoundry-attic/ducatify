@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/onsi/gomega/gexec"
+	. "github.com/pivotal-cf-experimental/gomegamatchers"
 )
 
 func loadFixture(name string) map[string]interface{} {
@@ -42,6 +43,7 @@ var _ = Describe("Manifest transformer", func() {
 		cmd *exec.Cmd
 
 		vanilla, expectedOutput, actualOutput map[string]interface{}
+		actualYAML                            []byte
 	)
 
 	BeforeEach(func() {
@@ -56,12 +58,15 @@ var _ = Describe("Manifest transformer", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(session).Should(gexec.Exit(0))
 
-		err = yaml.Unmarshal(session.Out.Contents(), &actualOutput)
+		actualYAML = session.Out.Contents()
+		err = yaml.Unmarshal(actualYAML, &actualOutput)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("generates the expected output", func() {
-		Expect(actualOutput).To(Equal(expectedOutput))
+		expectedYAML, err := ioutil.ReadFile(filepath.Join("fixtures", "skeleton_transformed.yml"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(actualYAML).To(MatchYAML(expectedYAML))
 	})
 
 	It("outputs the same top-level keys as the input file", func() {

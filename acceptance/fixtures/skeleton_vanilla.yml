@@ -1,4 +1,13 @@
 jobs:
+- name: database_z1
+  instances: 1
+  persistent_disk: 256
+  resource_pool: database_z1
+  networks:
+  - name: diego1
+  templates:
+  - name: bbs
+    release: diego
 - instances: 1
   name: cell_z1
   networks:
