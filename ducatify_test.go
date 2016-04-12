@@ -32,6 +32,9 @@ var _ = Describe("Transform", func() {
 				"garden": map[interface{}]interface{}{
 					"a_thing": "a_value",
 				},
+				"nsync": map[interface{}]interface{}{
+					"bbs": "bbs_addr",
+				},
 			},
 			"networks": []interface{}{
 				map[interface{}]interface{}{
@@ -213,6 +216,19 @@ var _ = Describe("Transform", func() {
 					"network_plugin_extra_args": []string{
 						"--configFile=/var/vcap/jobs/ducati/config/adapter.json",
 					},
+				}))
+		})
+	})
+
+	Describe("adding nsync properties", func() {
+		It("sets the nsync network id", func() {
+			err := transformer.Transform(manifest)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(manifest["properties"]).To(HaveKeyWithValue("nsync",
+				map[interface{}]interface{}{
+					"bbs":        "bbs_addr",
+					"network_id": "ducati-overlay",
 				}))
 		})
 	})

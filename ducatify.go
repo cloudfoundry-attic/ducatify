@@ -18,6 +18,7 @@ type Transformer struct {
 	DBUsername                   string
 	DBPassword                   string
 	DBSSLMode                    string
+	NsyncNetworkID               string
 }
 
 func New() *Transformer {
@@ -35,6 +36,8 @@ func New() *Transformer {
 		GardenSharedMounts:           []string{"/var/vcap/data/ducati/container-netns"},
 		GardenNetworkPlugin:          "/var/vcap/packages/ducati/bin/guardian-cni-adapter",
 		GardenNetworkPluginExtraArgs: []string{"--configFile=/var/vcap/jobs/ducati/config/adapter.json"},
+
+		NsyncNetworkID: "ducati-overlay",
 	}
 }
 
@@ -62,6 +65,11 @@ func (t *Transformer) Transform(manifest map[interface{}]interface{}) error {
 	err = t.addGardenProperties(manifest)
 	if err != nil {
 		return fmt.Errorf("adding garden properties: %s", err)
+	}
+
+	err = t.addNsyncProperties(manifest)
+	if err != nil {
+		return fmt.Errorf("adding nsync properties: %s", err)
 	}
 
 	err = t.addDucatiProperties(manifest)
@@ -175,6 +183,13 @@ func (t *Transformer) addGardenProperties(manifest map[interface{}]interface{}) 
 	gardenProps["network_plugin"] = t.GardenNetworkPlugin
 	gardenProps["network_plugin_extra_args"] = t.GardenNetworkPluginExtraArgs
 	gardenProps["shared_mounts"] = t.GardenSharedMounts
+	return nil
+}
+
+func (t *Transformer) addNsyncProperties(manifest map[interface{}]interface{}) (err error) {
+	defer dynRecover("add nsync properties", &err)
+	nsyncProps := manifest["properties"].(map[interface{}]interface{})["nsync"].(map[interface{}]interface{})
+	nsyncProps["network_id"] = t.NsyncNetworkID
 	return nil
 }
 

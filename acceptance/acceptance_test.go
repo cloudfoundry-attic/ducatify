@@ -128,6 +128,12 @@ var _ = Describe("Manifest transformer", func() {
 		Expect(actualGardenProps).To(Equal(expectedGardenProps))
 	})
 
+	It("adds network_id property to nsync", func() {
+		actualNsyncProps := actualOutput["properties"].(map[interface{}]interface{})["nsync"]
+		expectedNsyncProps := expectedOutput["properties"].(map[interface{}]interface{})["nsync"]
+		Expect(actualNsyncProps).To(Equal(expectedNsyncProps))
+	})
+
 	It("adds ducati properties", func() {
 		actualDucatiProps := actualOutput["properties"].(map[interface{}]interface{})["ducati"]
 		expectedDucatiProps := expectedOutput["properties"].(map[interface{}]interface{})["ducati"]
