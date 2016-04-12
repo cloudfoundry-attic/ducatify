@@ -158,8 +158,9 @@ networks:
     - 10.244.20.1
     static: []
 properties:
-  nsync:
-    bbs: some-location
+  diego:
+    nsync:
+      bbs: some-location
   garden:
     allow_host_access: null
     allow_networks: null

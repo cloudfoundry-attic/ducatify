@@ -32,8 +32,10 @@ var _ = Describe("Transform", func() {
 				"garden": map[interface{}]interface{}{
 					"a_thing": "a_value",
 				},
-				"nsync": map[interface{}]interface{}{
-					"bbs": "bbs_addr",
+				"diego": map[interface{}]interface{}{
+					"nsync": map[interface{}]interface{}{
+						"bbs": "bbs_addr",
+					},
 				},
 			},
 			"networks": []interface{}{
@@ -225,26 +227,14 @@ var _ = Describe("Transform", func() {
 			err := transformer.Transform(manifest)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(manifest["properties"]).To(HaveKeyWithValue("nsync",
+			Expect(manifest["properties"]).To(HaveKeyWithValue("diego",
 				map[interface{}]interface{}{
-					"bbs":        "bbs_addr",
-					"network_id": "ducati-overlay",
-				}))
-		})
-		Context("when manifest has no nsync properties", func() {
-			BeforeEach(func() {
-				propertiesMap := manifest["properties"].(map[interface{}]interface{})
-				delete(propertiesMap, "nsync")
-			})
-			It("adds them", func() {
-				err := transformer.Transform(manifest)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(manifest["properties"]).To(HaveKeyWithValue("nsync",
-					map[interface{}]interface{}{
+					"nsync": map[interface{}]interface{}{
+						"bbs":        "bbs_addr",
 						"network_id": "ducati-overlay",
-					}))
-			})
+					},
+				},
+			))
 		})
 	})
 

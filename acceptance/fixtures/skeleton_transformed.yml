@@ -184,9 +184,10 @@ networks:
     - 10.244.20.1
     static: []
 properties:
-  nsync:
-    bbs: some-location
-    network_id: ducati-overlay
+  diego:
+    nsync:
+      bbs: some-location
+      network_id: ducati-overlay
   garden:
     allow_host_access: null
     allow_networks: null
