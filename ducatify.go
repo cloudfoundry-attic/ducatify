@@ -188,8 +188,11 @@ func (t *Transformer) addGardenProperties(manifest map[interface{}]interface{}) 
 
 func (t *Transformer) addNsyncProperties(manifest map[interface{}]interface{}) (err error) {
 	defer dynRecover("add nsync properties", &err)
-	nsyncProps := manifest["properties"].(map[interface{}]interface{})["nsync"].(map[interface{}]interface{})
-	nsyncProps["network_id"] = t.NsyncNetworkID
+	properties := manifest["properties"].(map[interface{}]interface{})
+	if _, ok := properties["nsync"]; !ok {
+		properties["nsync"] = make(map[interface{}]interface{})
+	}
+	properties["nsync"].(map[interface{}]interface{})["network_id"] = t.NsyncNetworkID
 	return nil
 }
 

@@ -231,6 +231,21 @@ var _ = Describe("Transform", func() {
 					"network_id": "ducati-overlay",
 				}))
 		})
+		Context("when manifest has no nsync properties", func() {
+			BeforeEach(func() {
+				propertiesMap := manifest["properties"].(map[interface{}]interface{})
+				delete(propertiesMap, "nsync")
+			})
+			It("adds them", func() {
+				err := transformer.Transform(manifest)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(manifest["properties"]).To(HaveKeyWithValue("nsync",
+					map[interface{}]interface{}{
+						"network_id": "ducati-overlay",
+					}))
+			})
+		})
 	})
 
 	Describe("adding ducati properties", func() {
