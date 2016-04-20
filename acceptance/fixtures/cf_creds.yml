@@ -1,0 +1,6 @@
+---
+api: api.systemdomain.mycf.example.com
+admin_password: some-admin-password
+admin_user: some-admin-user
+apps_domain: appsdomain.mycf.example.com
+skip_ssl_validation: true

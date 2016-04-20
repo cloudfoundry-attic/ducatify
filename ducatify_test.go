@@ -9,8 +9,9 @@ import (
 
 var _ = Describe("Transform", func() {
 	var (
-		manifest    map[interface{}]interface{}
-		transformer *ducatify.Transformer
+		manifest            map[interface{}]interface{}
+		acceptanceJobConfig map[interface{}]interface{}
+		transformer         *ducatify.Transformer
 	)
 
 	BeforeEach(func() {
@@ -49,6 +50,14 @@ var _ = Describe("Transform", func() {
 				},
 			},
 		}
+
+		acceptanceJobConfig = map[interface{}]interface{}{
+			"api":                 "api.systemdomain.mycf.example.com",
+			"admin_password":      "some-admin-password",
+			"admin_user":          "some-admin-user",
+			"apps_domain":         "appsdomain.mycf.example.com",
+			"skip_ssl_validation": "true",
+		}
 	})
 
 	// trying to use new naming convention:
@@ -85,7 +94,7 @@ var _ = Describe("Transform", func() {
 		})
 
 		It("colocates ducati template onto every cell instance group", func() {
-			err := transformer.Transform(manifest)
+			err := transformer.Transform(manifest, acceptanceJobConfig)
 			Expect(err).NotTo(HaveOccurred())
 			jobs := manifest["jobs"].([]interface{})
 			Expect(jobs[2]).To(Equal(map[interface{}]interface{}{
@@ -125,7 +134,7 @@ var _ = Describe("Transform", func() {
 		})
 
 		It("colocates ducati template onto the 'colocated' job", func() {
-			err := transformer.Transform(manifest)
+			err := transformer.Transform(manifest, acceptanceJobConfig)
 			Expect(err).NotTo(HaveOccurred())
 			jobs := manifest["jobs"].([]interface{})
 			Expect(jobs[2]).To(Equal(map[interface{}]interface{}{
@@ -141,7 +150,7 @@ var _ = Describe("Transform", func() {
 
 	Describe("adding new jobs", func() {
 		It("adds the ducati_db job", func() {
-			err := transformer.Transform(manifest)
+			err := transformer.Transform(manifest, acceptanceJobConfig)
 			Expect(err).NotTo(HaveOccurred())
 			jobs := manifest["jobs"].([]interface{})
 			Expect(jobs).To(ContainElement(map[interface{}]interface{}{
@@ -175,6 +184,26 @@ var _ = Describe("Transform", func() {
 				},
 			}))
 		})
+
+		It("adds the ducati acceptance test job", func() {
+			err := transformer.Transform(manifest, acceptanceJobConfig)
+			Expect(err).NotTo(HaveOccurred())
+			jobs := manifest["jobs"].([]interface{})
+			Expect(jobs).To(ContainElement(map[interface{}]interface{}{
+				"name":          "ducati-acceptance",
+				"instances":     1,
+				"lifecycle":     "errand",
+				"resource_pool": "database_z1",
+				"networks": []interface{}{
+					map[interface{}]interface{}{
+						"name": "diego1",
+					},
+				},
+				"templates": []interface{}{
+					map[interface{}]interface{}{"name": "acceptance-with-cf", "release": "ducati"},
+				},
+			}))
+		})
 	})
 
 	Describe("updating releases", func() {
@@ -186,7 +215,7 @@ var _ = Describe("Transform", func() {
 		})
 
 		It("adds the ducati release", func() {
-			err := transformer.Transform(manifest)
+			err := transformer.Transform(manifest, acceptanceJobConfig)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(manifest).To(HaveKey("releases"))
@@ -205,7 +234,7 @@ var _ = Describe("Transform", func() {
 
 	Describe("adding garden properties", func() {
 		It("sets the network plugin properties", func() {
-			err := transformer.Transform(manifest)
+			err := transformer.Transform(manifest, acceptanceJobConfig)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(manifest["properties"]).To(HaveKeyWithValue("garden",
@@ -224,7 +253,7 @@ var _ = Describe("Transform", func() {
 
 	Describe("adding nsync properties", func() {
 		It("sets the nsync network id", func() {
-			err := transformer.Transform(manifest)
+			err := transformer.Transform(manifest, acceptanceJobConfig)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(manifest["properties"]).To(HaveKeyWithValue("diego",
@@ -240,7 +269,7 @@ var _ = Describe("Transform", func() {
 
 	Describe("adding ducati properties", func() {
 		It("adds properties for ducati", func() {
-			err := transformer.Transform(manifest)
+			err := transformer.Transform(manifest, acceptanceJobConfig)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(manifest["properties"]).To(HaveKeyWithValue("ducati",
@@ -274,6 +303,14 @@ var _ = Describe("Transform", func() {
 				},
 			))
 		})
+	})
 
+	Describe("adding acceptance-with-cf properties", func() {
+		It("adds properties for acceptance with ducati", func() {
+			err := transformer.Transform(manifest, acceptanceJobConfig)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(manifest["properties"]).To(HaveKeyWithValue("acceptance-with-cf", acceptanceJobConfig))
+		})
 	})
 })

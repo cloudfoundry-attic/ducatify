@@ -41,7 +41,10 @@ func New() *Transformer {
 	}
 }
 
-func (t *Transformer) Transform(manifest map[interface{}]interface{}) error {
+func (t *Transformer) Transform(
+	manifest map[interface{}]interface{},
+	acceptanceJobConfig map[interface{}]interface{},
+) error {
 	err := t.updateReleases(manifest)
 	if err != nil {
 		return fmt.Errorf("updating releases: %s", err)
@@ -75,6 +78,16 @@ func (t *Transformer) Transform(manifest map[interface{}]interface{}) error {
 	err = t.addDucatiProperties(manifest)
 	if err != nil {
 		return fmt.Errorf("adding garden properties: %s", err)
+	}
+
+	err = t.addAcceptanceJob(manifest)
+	if err != nil {
+		return fmt.Errorf("adding acceptance with cf job: %s", err)
+	}
+
+	err = t.addAcceptanceJobProperties(manifest, acceptanceJobConfig)
+	if err != nil {
+		return fmt.Errorf("adding acceptance with cf job properties: %s", err)
 	}
 	return nil
 }
@@ -110,6 +123,29 @@ func (t *Transformer) addDucatiTemplate(manifest map[interface{}]interface{}, na
 			return err
 		}
 	}
+
+	return nil
+}
+func (t *Transformer) addAcceptanceJob(manifest map[interface{}]interface{}) (err error) {
+	defer dynRecover("add acceptance with cf job", &err)
+
+	acceptanceJob := map[interface{}]interface{}{
+		"name":          "ducati-acceptance",
+		"instances":     1,
+		"lifecycle":     "errand",
+		"resource_pool": t.DBResourcePool,
+		"networks": []interface{}{
+			map[interface{}]interface{}{
+				"name": t.DBNetwork,
+			},
+		},
+		"templates": []interface{}{
+			map[interface{}]interface{}{"name": "acceptance-with-cf", "release": "ducati"},
+		},
+	}
+
+	oldJobs := manifest["jobs"].([]interface{})
+	manifest["jobs"] = append(oldJobs, acceptanceJob)
 
 	return nil
 }
@@ -226,6 +262,15 @@ func (t *Transformer) addDucatiProperties(manifest map[interface{}]interface{}) 
 			},
 		},
 	}
+
+	return nil
+}
+
+func (t *Transformer) addAcceptanceJobProperties(manifest, acceptanceJobConfig map[interface{}]interface{}) (err error) {
+	defer dynRecover("add acceptance with cf job properties", &err)
+
+	props := manifest["properties"].(map[interface{}]interface{})
+	props["acceptance-with-cf"] = acceptanceJobConfig
 
 	return nil
 }

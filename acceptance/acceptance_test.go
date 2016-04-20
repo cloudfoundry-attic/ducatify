@@ -13,9 +13,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/onsi/gomega/gexec"
+	. "github.com/pivotal-cf-experimental/gomegamatchers"
 )
 
-func loadFixture(name string) map[string]interface{} {
+func loadFixture(name string) ([]byte, map[string]interface{}) {
 	bytes, err := ioutil.ReadFile(filepath.Join("fixtures", name+".yml"))
 	Expect(err).NotTo(HaveOccurred())
 
@@ -23,7 +24,7 @@ func loadFixture(name string) map[string]interface{} {
 	err = yaml.Unmarshal(bytes, &data)
 	Expect(err).NotTo(HaveOccurred())
 
-	return data
+	return bytes, data
 }
 
 func findElementWithName(slice interface{}, name string) interface{} {
@@ -42,26 +43,35 @@ var _ = Describe("Manifest transformer", func() {
 		cmd *exec.Cmd
 
 		vanilla, expectedOutput, actualOutput map[string]interface{}
+
+		actualBytes, expectedBytes []byte
 	)
 
 	BeforeEach(func() {
-		vanilla = loadFixture("skeleton_vanilla")
-		expectedOutput = loadFixture("skeleton_transformed")
+		_, vanilla = loadFixture("skeleton_vanilla")
+		expectedBytes, expectedOutput = loadFixture("skeleton_transformed")
 
 		cmd = exec.Command(binPath,
 			"-diego", "fixtures/skeleton_vanilla.yml",
+			"-cfCreds", "fixtures/cf_creds.yml",
 		)
 
 		session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(session).Should(gexec.Exit(0))
 
-		err = yaml.Unmarshal(session.Out.Contents(), &actualOutput)
+		actualBytes = session.Out.Contents()
+
+		err = yaml.Unmarshal(actualBytes, &actualOutput)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("generates the expected output", func() {
 		Expect(actualOutput).To(Equal(expectedOutput))
+	})
+
+	It("matches the yaml of the expected output", func() {
+		Expect(actualBytes).To(MatchYAML(expectedBytes))
 	})
 
 	It("outputs the same top-level keys as the input file", func() {

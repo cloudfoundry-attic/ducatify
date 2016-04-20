@@ -156,6 +156,17 @@ jobs:
   update:
     max_in_flight: 1
     serial: true
+
+- name: ducati-acceptance
+  lifecycle: errand
+  instances: 1
+  templates:
+    - name: acceptance-with-cf
+      release: ducati
+  resource_pool: database_z1
+  networks:
+    - name: diego1
+
 name: cf-warden-diego
 networks:
 - name: diego1
@@ -184,6 +195,12 @@ networks:
     - 10.244.20.1
     static: []
 properties:
+  acceptance-with-cf:
+    api: api.systemdomain.mycf.example.com
+    admin_password: some-admin-password
+    admin_user: some-admin-user
+    apps_domain: appsdomain.mycf.example.com
+    skip_ssl_validation: true
   diego:
     nsync:
       bbs: some-location
