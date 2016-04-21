@@ -7,9 +7,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/cloudfoundry-incubator/candiedyaml"
 	"github.com/cloudfoundry-incubator/ducatify"
-
-	"gopkg.in/yaml.v2"
 )
 
 func main() {
@@ -48,13 +47,13 @@ func main() {
 
 func transformBytes(vanillaBytes, cfCredBytes []byte) ([]byte, error) {
 	var manifest map[interface{}]interface{}
-	err := yaml.Unmarshal(vanillaBytes, &manifest)
+	err := candiedyaml.Unmarshal(vanillaBytes, &manifest)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling yaml: %s", err)
 	}
 
 	var acceptanceJobConfig map[interface{}]interface{}
-	err = yaml.Unmarshal(cfCredBytes, &acceptanceJobConfig)
+	err = candiedyaml.Unmarshal(cfCredBytes, &acceptanceJobConfig)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling yaml: %s", err)
 	}
@@ -65,7 +64,7 @@ func transformBytes(vanillaBytes, cfCredBytes []byte) ([]byte, error) {
 		return nil, fmt.Errorf("transforming: %s", err)
 	}
 
-	transformedBytes, err := yaml.Marshal(manifest)
+	transformedBytes, err := candiedyaml.Marshal(manifest)
 	if err != nil {
 		return nil, fmt.Errorf("re-marshalling yaml: %s", err)
 	}

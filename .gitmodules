@@ -9,4 +9,7 @@
 	url = https://gopkg.in/yaml.v2
 [submodule "vendor/github.com/pivotal-cf-experimental/gomegamatchers"]
 	path = vendor/github.com/pivotal-cf-experimental/gomegamatchers
-	url = https://github.com/rosenhouse/gomegamatchers
+	url = https://github.com/pivotal-cf-experimental/gomegamatchers
+[submodule "vendor/github.com/cloudfoundry-incubator/candiedyaml"]
+	path = vendor/github.com/cloudfoundry-incubator/candiedyaml
+	url = https://github.com/cloudfoundry-incubator/candiedyaml

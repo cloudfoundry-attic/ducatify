@@ -7,8 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"gopkg.in/yaml.v2"
-
+	"github.com/cloudfoundry-incubator/candiedyaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -21,7 +20,7 @@ func loadFixture(name string) ([]byte, map[string]interface{}) {
 	Expect(err).NotTo(HaveOccurred())
 
 	var data map[string]interface{}
-	err = yaml.Unmarshal(bytes, &data)
+	err = candiedyaml.Unmarshal(bytes, &data)
 	Expect(err).NotTo(HaveOccurred())
 
 	return bytes, data
@@ -62,7 +61,7 @@ var _ = Describe("Manifest transformer", func() {
 
 		actualBytes = session.Out.Contents()
 
-		err = yaml.Unmarshal(actualBytes, &actualOutput)
+		err = candiedyaml.Unmarshal(actualBytes, &actualOutput)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
