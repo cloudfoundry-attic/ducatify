@@ -161,6 +161,13 @@ properties:
   diego:
     nsync:
       bbs: some-location
+    route_emitter:
+      nats:
+        machines:
+        - 10.244.0.6
+        password: nats
+        port: 4222
+        user: nats
   garden:
     allow_host_access: null
     allow_networks: null

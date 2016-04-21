@@ -12,10 +12,12 @@ var _ = Describe("Transform", func() {
 		manifest            map[interface{}]interface{}
 		acceptanceJobConfig map[interface{}]interface{}
 		transformer         *ducatify.Transformer
+		systemDomain        string
 	)
 
 	BeforeEach(func() {
 		transformer = ducatify.New()
+		systemDomain = "some.system.domain"
 		manifest = map[interface{}]interface{}{
 			"releases": []interface{}{},
 			"jobs": []interface{}{
@@ -36,6 +38,11 @@ var _ = Describe("Transform", func() {
 				"diego": map[interface{}]interface{}{
 					"nsync": map[interface{}]interface{}{
 						"bbs": "bbs_addr",
+					},
+					"route_emitter": map[interface{}]interface{}{
+						"nats": map[interface{}]interface{}{
+							"some-key": "some-value",
+						},
 					},
 				},
 			},
@@ -94,7 +101,7 @@ var _ = Describe("Transform", func() {
 		})
 
 		It("colocates ducati template onto every cell instance group", func() {
-			err := transformer.Transform(manifest, acceptanceJobConfig)
+			err := transformer.Transform(manifest, acceptanceJobConfig, systemDomain)
 			Expect(err).NotTo(HaveOccurred())
 			jobs := manifest["jobs"].([]interface{})
 			Expect(jobs[2]).To(Equal(map[interface{}]interface{}{
@@ -103,6 +110,22 @@ var _ = Describe("Transform", func() {
 				"templates": []interface{}{
 					map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
 					map[interface{}]interface{}{"name": "ducati", "release": "ducati"},
+					map[interface{}]interface{}{"name": "route_registrar", "release": "cf"},
+				},
+				"properties": map[interface{}]interface{}{
+					"nats": map[interface{}]interface{}{
+						"some-key": "some-value",
+					},
+					"route_registrar": map[interface{}]interface{}{
+						"routes": []interface{}{
+							map[interface{}]interface{}{
+								"name":                  "ducati",
+								"registration_interval": "20s",
+								"port":                  4001,
+								"uris":                  []string{"ducati.some.system.domain"},
+							},
+						},
+					},
 				},
 			}))
 			Expect(jobs[3]).To(Equal(map[interface{}]interface{}{
@@ -111,6 +134,22 @@ var _ = Describe("Transform", func() {
 				"templates": []interface{}{
 					map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
 					map[interface{}]interface{}{"name": "ducati", "release": "ducati"},
+					map[interface{}]interface{}{"name": "route_registrar", "release": "cf"},
+				},
+				"properties": map[interface{}]interface{}{
+					"nats": map[interface{}]interface{}{
+						"some-key": "some-value",
+					},
+					"route_registrar": map[interface{}]interface{}{
+						"routes": []interface{}{
+							map[interface{}]interface{}{
+								"name":                  "ducati",
+								"registration_interval": "20s",
+								"port":                  4001,
+								"uris":                  []string{"ducati.some.system.domain"},
+							},
+						},
+					},
 				},
 			}))
 		})
@@ -134,7 +173,7 @@ var _ = Describe("Transform", func() {
 		})
 
 		It("colocates ducati template onto the 'colocated' job", func() {
-			err := transformer.Transform(manifest, acceptanceJobConfig)
+			err := transformer.Transform(manifest, acceptanceJobConfig, systemDomain)
 			Expect(err).NotTo(HaveOccurred())
 			jobs := manifest["jobs"].([]interface{})
 			Expect(jobs[2]).To(Equal(map[interface{}]interface{}{
@@ -143,6 +182,22 @@ var _ = Describe("Transform", func() {
 				"templates": []interface{}{
 					map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
 					map[interface{}]interface{}{"name": "ducati", "release": "ducati"},
+					map[interface{}]interface{}{"name": "route_registrar", "release": "cf"},
+				},
+				"properties": map[interface{}]interface{}{
+					"nats": map[interface{}]interface{}{
+						"some-key": "some-value",
+					},
+					"route_registrar": map[interface{}]interface{}{
+						"routes": []interface{}{
+							map[interface{}]interface{}{
+								"name":                  "ducati",
+								"registration_interval": "20s",
+								"port":                  4001,
+								"uris":                  []string{"ducati.some.system.domain"},
+							},
+						},
+					},
 				},
 			}))
 		})
@@ -150,7 +205,7 @@ var _ = Describe("Transform", func() {
 
 	Describe("adding new jobs", func() {
 		It("adds the ducati_db job", func() {
-			err := transformer.Transform(manifest, acceptanceJobConfig)
+			err := transformer.Transform(manifest, acceptanceJobConfig, systemDomain)
 			Expect(err).NotTo(HaveOccurred())
 			jobs := manifest["jobs"].([]interface{})
 			Expect(jobs).To(ContainElement(map[interface{}]interface{}{
@@ -186,7 +241,7 @@ var _ = Describe("Transform", func() {
 		})
 
 		It("adds the ducati acceptance test job", func() {
-			err := transformer.Transform(manifest, acceptanceJobConfig)
+			err := transformer.Transform(manifest, acceptanceJobConfig, systemDomain)
 			Expect(err).NotTo(HaveOccurred())
 			jobs := manifest["jobs"].([]interface{})
 			Expect(jobs).To(ContainElement(map[interface{}]interface{}{
@@ -215,7 +270,7 @@ var _ = Describe("Transform", func() {
 		})
 
 		It("adds the ducati release", func() {
-			err := transformer.Transform(manifest, acceptanceJobConfig)
+			err := transformer.Transform(manifest, acceptanceJobConfig, systemDomain)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(manifest).To(HaveKey("releases"))
@@ -234,7 +289,7 @@ var _ = Describe("Transform", func() {
 
 	Describe("adding garden properties", func() {
 		It("sets the network plugin properties", func() {
-			err := transformer.Transform(manifest, acceptanceJobConfig)
+			err := transformer.Transform(manifest, acceptanceJobConfig, systemDomain)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(manifest["properties"]).To(HaveKeyWithValue("garden",
@@ -253,7 +308,7 @@ var _ = Describe("Transform", func() {
 
 	Describe("adding nsync properties", func() {
 		It("sets the nsync network id", func() {
-			err := transformer.Transform(manifest, acceptanceJobConfig)
+			err := transformer.Transform(manifest, acceptanceJobConfig, systemDomain)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(manifest["properties"]).To(HaveKeyWithValue("diego",
@@ -262,6 +317,11 @@ var _ = Describe("Transform", func() {
 						"bbs":        "bbs_addr",
 						"network_id": "ducati-overlay",
 					},
+					"route_emitter": map[interface{}]interface{}{
+						"nats": map[interface{}]interface{}{
+							"some-key": "some-value",
+						},
+					},
 				},
 			))
 		})
@@ -269,7 +329,7 @@ var _ = Describe("Transform", func() {
 
 	Describe("adding ducati properties", func() {
 		It("adds properties for ducati", func() {
-			err := transformer.Transform(manifest, acceptanceJobConfig)
+			err := transformer.Transform(manifest, acceptanceJobConfig, systemDomain)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(manifest["properties"]).To(HaveKeyWithValue("ducati",
@@ -307,7 +367,7 @@ var _ = Describe("Transform", func() {
 
 	Describe("adding acceptance-with-cf properties", func() {
 		It("adds properties for acceptance with ducati", func() {
-			err := transformer.Transform(manifest, acceptanceJobConfig)
+			err := transformer.Transform(manifest, acceptanceJobConfig, systemDomain)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(manifest["properties"]).To(HaveKeyWithValue("acceptance-with-cf", acceptanceJobConfig))

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/cloudfoundry-incubator/candiedyaml"
 	"github.com/cloudfoundry-incubator/ducatify"
@@ -45,6 +46,21 @@ func main() {
 	os.Stdout.Write(transformedBytes)
 }
 
+func getSystemDomain(cfCreds map[interface{}]interface{}) (string, error) {
+	apiVal, exists := cfCreds["api"]
+	if !exists {
+		return "", fmt.Errorf("missing expected config in cfCreds: api")
+	}
+	api, ok := apiVal.(string)
+	if !ok {
+		return "", fmt.Errorf("api key not a string")
+	}
+	if !strings.HasPrefix(api, "api.") {
+		return "", fmt.Errorf("unable to parse api key to extract system domain")
+	}
+	return strings.TrimPrefix(api, "api."), nil
+}
+
 func transformBytes(vanillaBytes, cfCredBytes []byte) ([]byte, error) {
 	var manifest map[interface{}]interface{}
 	err := candiedyaml.Unmarshal(vanillaBytes, &manifest)
@@ -52,14 +68,19 @@ func transformBytes(vanillaBytes, cfCredBytes []byte) ([]byte, error) {
 		return nil, fmt.Errorf("unmarshalling yaml: %s", err)
 	}
 
-	var acceptanceJobConfig map[interface{}]interface{}
-	err = candiedyaml.Unmarshal(cfCredBytes, &acceptanceJobConfig)
+	var cfCreds map[interface{}]interface{}
+	err = candiedyaml.Unmarshal(cfCredBytes, &cfCreds)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling yaml: %s", err)
 	}
 
+	systemDomain, err := getSystemDomain(cfCreds)
+	if err != nil {
+		return nil, fmt.Errorf("getting system domain: %s", err)
+	}
+
 	transformer := ducatify.New()
-	err = transformer.Transform(manifest, acceptanceJobConfig)
+	err = transformer.Transform(manifest, cfCreds, systemDomain)
 	if err != nil {
 		return nil, fmt.Errorf("transforming: %s", err)
 	}

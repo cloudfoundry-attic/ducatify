@@ -44,6 +44,7 @@ func New() *Transformer {
 func (t *Transformer) Transform(
 	manifest map[interface{}]interface{},
 	acceptanceJobConfig map[interface{}]interface{},
+	systemDomain string,
 ) error {
 	err := t.updateReleases(manifest)
 	if err != nil {
@@ -55,12 +56,17 @@ func (t *Transformer) Transform(
 		return fmt.Errorf("adding ducati_db job: %s", err)
 	}
 
-	err = t.addDucatiTemplate(manifest, "cell_z")
+	natsProperties, err := getNatsProperties(manifest)
+	if err != nil {
+		return fmt.Errorf("getting nats properties: %s", err)
+	}
+
+	err = t.modifyCellJob(manifest, "cell_z", natsProperties, systemDomain)
 	if err != nil {
 		return fmt.Errorf("adding ducati template to cells: %s", err)
 	}
 
-	err = t.addDucatiTemplate(manifest, "colocated_z")
+	err = t.modifyCellJob(manifest, "colocated_z", natsProperties, systemDomain)
 	if err != nil {
 		return fmt.Errorf("adding ducati template to colocated vm: %s", err)
 	}
@@ -98,7 +104,7 @@ func dynRecover(context string, err *error) {
 	}
 }
 
-func (t *Transformer) addDucatiTemplate(manifest map[interface{}]interface{}, namePrefix string) (err error) {
+func (t *Transformer) modifyCellJob(manifest map[interface{}]interface{}, namePrefix string, natsProperties interface{}, systemDomain string) (err error) {
 	defer dynRecover("add ducati template to "+namePrefix, &err)
 
 	for _, jobVal := range manifest["jobs"].([]interface{}) {
@@ -110,12 +116,40 @@ func (t *Transformer) addDucatiTemplate(manifest map[interface{}]interface{}, na
 			continue
 		}
 
+		properties, err := getElement(jobVal, "properties")
+		if err != nil {
+			properties = make(map[interface{}]interface{})
+			err = setElement(jobVal, "properties", properties)
+			if err != nil {
+				return err
+			}
+		}
+		err = setElement(properties, "nats", natsProperties)
+		if err != nil {
+			return err
+		}
+		routeRegistrarProperties := map[interface{}]interface{}{
+			"routes": []interface{}{
+				map[interface{}]interface{}{
+					"name":                  "ducati",
+					"registration_interval": "20s",
+					"port":                  4001,
+					"uris":                  []string{"ducati." + systemDomain},
+				},
+			},
+		}
+		err = setElement(properties, "route_registrar", routeRegistrarProperties)
+		if err != nil {
+			return err
+		}
+
 		templates, err := getElement(jobVal, "templates")
 		if err != nil {
 			return err
 		}
 		templates = append(templates.([]interface{}),
 			map[interface{}]interface{}{"name": "ducati", "release": "ducati"},
+			map[interface{}]interface{}{"name": "route_registrar", "release": "cf"},
 		)
 
 		err = setElement(jobVal, "templates", templates)
@@ -273,4 +307,20 @@ func (t *Transformer) addAcceptanceJobProperties(manifest, acceptanceJobConfig m
 	props["acceptance-with-cf"] = acceptanceJobConfig
 
 	return nil
+}
+
+func getManifestElement(manifest map[interface{}]interface{}, keys ...string) (ret interface{}, err error) {
+	defer dynRecover("get manifest properties", &err)
+
+	var val interface{} = manifest
+	for len(keys) > 0 {
+		val = val.(map[interface{}]interface{})[keys[0]]
+		keys = keys[1:]
+	}
+
+	return val, nil
+}
+
+func getNatsProperties(manifest map[interface{}]interface{}) (interface{}, error) {
+	return getManifestElement(manifest, "properties", "diego", "route_emitter", "nats")
 }

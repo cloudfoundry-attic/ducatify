@@ -38,6 +38,19 @@ jobs:
         zone: z1
     metron_agent:
       zone: z1
+    nats:
+      machines:
+      - 10.244.0.6
+      password: nats
+      port: 4222
+      user: nats
+    route_registrar:
+      routes:
+      - name: ducati
+        registration_interval: 20s
+        port: 4001
+        uris:
+        - ducati.systemdomain.mycf.example.com
   resource_pool: cell_z1
   templates:
   - name: rep
@@ -52,6 +65,8 @@ jobs:
     release: cf
   - name: ducati
     release: ducati
+  - name: route_registrar
+    release: cf
   update:
     max_in_flight: 1
     serial: false
@@ -85,6 +100,19 @@ jobs:
         zone: z2
     metron_agent:
       zone: z2
+    nats:
+      machines:
+      - 10.244.0.6
+      password: nats
+      port: 4222
+      user: nats
+    route_registrar:
+      routes:
+      - name: ducati
+        registration_interval: 20s
+        port: 4001
+        uris:
+        - ducati.systemdomain.mycf.example.com
   resource_pool: cell_z2
   templates:
   - name: rep
@@ -99,6 +127,8 @@ jobs:
     release: cf
   - name: ducati
     release: ducati
+  - name: route_registrar
+    release: cf
   update:
     max_in_flight: 1
     serial: false
@@ -117,6 +147,19 @@ jobs:
         zone: z3
     metron_agent:
       zone: z3
+    nats:
+      machines:
+      - 10.244.0.6
+      password: nats
+      port: 4222
+      user: nats
+    route_registrar:
+      routes:
+      - name: ducati
+        registration_interval: 20s
+        port: 4001
+        uris:
+        - ducati.systemdomain.mycf.example.com
   resource_pool: colocated_z3
   templates:
   - name: rep
@@ -153,6 +196,8 @@ jobs:
     release: diego
   - name: ducati
     release: ducati
+  - name: route_registrar
+    release: cf
   update:
     max_in_flight: 1
     serial: true
@@ -205,6 +250,13 @@ properties:
     nsync:
       bbs: some-location
       network_id: ducati-overlay
+    route_emitter:
+      nats:
+        machines:
+        - 10.244.0.6
+        password: nats
+        port: 4222
+        user: nats
   garden:
     allow_host_access: null
     allow_networks: null
