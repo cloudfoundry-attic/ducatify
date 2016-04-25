@@ -1,4 +1,39 @@
 jobs:
+- instances: 1
+  name: cc_bridge_z1
+  networks:
+  - name: diego1
+  properties:
+    metron_agent:
+      zone: z1
+    route_registrar:
+      routes:
+      - name: connet
+        registration_interval: 20s
+        port: 4002
+        uris:
+        - connet.systemdomain.mycf.example.com
+  resource_pool: cc_bridge_z1
+  templates:
+  - name: consul_agent
+    release: cf
+  - name: stager
+    release: diego
+  - name: nsync
+    release: diego
+  - name: tps
+    release: diego
+  - name: cc_uploader
+    release: diego
+  - name: metron_agent
+    release: cf
+  - name: connet
+    release: ducati
+  - name: route_registrar
+    release: cf
+  update:
+    max_in_flight: 1
+    serial: false
 - name: database_z1
   instances: 1
   persistent_disk: 256
@@ -38,19 +73,6 @@ jobs:
         zone: z1
     metron_agent:
       zone: z1
-    nats:
-      machines:
-      - 10.244.0.6
-      password: nats
-      port: 4222
-      user: nats
-    route_registrar:
-      routes:
-      - name: ducati
-        registration_interval: 20s
-        port: 4001
-        uris:
-        - ducati.systemdomain.mycf.example.com
   resource_pool: cell_z1
   templates:
   - name: rep
@@ -65,8 +87,6 @@ jobs:
     release: cf
   - name: ducati
     release: ducati
-  - name: route_registrar
-    release: cf
   update:
     max_in_flight: 1
     serial: false
@@ -100,19 +120,6 @@ jobs:
         zone: z2
     metron_agent:
       zone: z2
-    nats:
-      machines:
-      - 10.244.0.6
-      password: nats
-      port: 4222
-      user: nats
-    route_registrar:
-      routes:
-      - name: ducati
-        registration_interval: 20s
-        port: 4001
-        uris:
-        - ducati.systemdomain.mycf.example.com
   resource_pool: cell_z2
   templates:
   - name: rep
@@ -127,8 +134,6 @@ jobs:
     release: cf
   - name: ducati
     release: ducati
-  - name: route_registrar
-    release: cf
   update:
     max_in_flight: 1
     serial: false
@@ -147,19 +152,6 @@ jobs:
         zone: z3
     metron_agent:
       zone: z3
-    nats:
-      machines:
-      - 10.244.0.6
-      password: nats
-      port: 4222
-      user: nats
-    route_registrar:
-      routes:
-      - name: ducati
-        registration_interval: 20s
-        port: 4001
-        uris:
-        - ducati.systemdomain.mycf.example.com
   resource_pool: colocated_z3
   templates:
   - name: rep
@@ -195,6 +187,8 @@ jobs:
   - name: tps
     release: diego
   - name: ducati
+    release: ducati
+  - name: connet
     release: ducati
   - name: route_registrar
     release: cf

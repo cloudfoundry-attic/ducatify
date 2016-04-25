@@ -56,17 +56,22 @@ func (t *Transformer) Transform(
 		return fmt.Errorf("adding ducati_db job: %s", err)
 	}
 
-	natsProperties, err := getNatsProperties(manifest)
+	_, err = getNatsProperties(manifest)
 	if err != nil {
 		return fmt.Errorf("getting nats properties: %s", err)
 	}
 
-	err = t.modifyCellJob(manifest, "cell_z", natsProperties, systemDomain)
+	err = t.modifyCCBridgeJob(manifest, systemDomain)
+	if err != nil {
+		return fmt.Errorf("adding connet template to cc_bridge: %s", err)
+	}
+
+	err = t.modifyCellJob(manifest, "cell_z")
 	if err != nil {
 		return fmt.Errorf("adding ducati template to cells: %s", err)
 	}
 
-	err = t.modifyCellJob(manifest, "colocated_z", natsProperties, systemDomain)
+	err = t.modifyCellJob(manifest, "colocated_z")
 	if err != nil {
 		return fmt.Errorf("adding ducati template to colocated vm: %s", err)
 	}
@@ -104,15 +109,15 @@ func dynRecover(context string, err *error) {
 	}
 }
 
-func (t *Transformer) modifyCellJob(manifest map[interface{}]interface{}, namePrefix string, natsProperties interface{}, systemDomain string) (err error) {
-	defer dynRecover("add ducati template to "+namePrefix, &err)
+func (t *Transformer) modifyCCBridgeJob(manifest map[interface{}]interface{}, systemDomain string) (err error) {
+	defer dynRecover("add ducati template to cc_bridge", &err)
 
 	for _, jobVal := range manifest["jobs"].([]interface{}) {
 		nameVal, err := getElement(jobVal, "name")
 		if err != nil {
 			return err
 		}
-		if !strings.HasPrefix(nameVal.(string), namePrefix) {
+		if !strings.HasPrefix(nameVal.(string), "cc_bridge_z") {
 			continue
 		}
 
@@ -124,17 +129,13 @@ func (t *Transformer) modifyCellJob(manifest map[interface{}]interface{}, namePr
 				return err
 			}
 		}
-		err = setElement(properties, "nats", natsProperties)
-		if err != nil {
-			return err
-		}
 		routeRegistrarProperties := map[interface{}]interface{}{
 			"routes": []interface{}{
 				map[interface{}]interface{}{
-					"name":                  "ducati",
+					"name":                  "connet",
 					"registration_interval": "20s",
-					"port":                  4001,
-					"uris":                  []string{"ducati." + systemDomain},
+					"port":                  4002,
+					"uris":                  []string{"connet." + systemDomain},
 				},
 			},
 		}
@@ -148,9 +149,43 @@ func (t *Transformer) modifyCellJob(manifest map[interface{}]interface{}, namePr
 			return err
 		}
 		templates = append(templates.([]interface{}),
-			map[interface{}]interface{}{"name": "ducati", "release": "ducati"},
+			map[interface{}]interface{}{"name": "connet", "release": "ducati"},
 			map[interface{}]interface{}{"name": "route_registrar", "release": "cf"},
 		)
+
+		err = setElement(jobVal, "templates", templates)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t *Transformer) modifyCellJob(manifest map[interface{}]interface{}, namePrefix string) (err error) {
+	defer dynRecover("add ducati template to "+namePrefix, &err)
+
+	for _, jobVal := range manifest["jobs"].([]interface{}) {
+		nameVal, err := getElement(jobVal, "name")
+		if err != nil {
+			return err
+		}
+		if !strings.HasPrefix(nameVal.(string), namePrefix) {
+			continue
+		}
+
+		templates, err := getElement(jobVal, "templates")
+		if err != nil {
+			return err
+		}
+		templates = append(templates.([]interface{}),
+			map[interface{}]interface{}{"name": "ducati", "release": "ducati"},
+		)
+		if strings.HasPrefix(nameVal.(string), "colocated") {
+			templates = append(templates.([]interface{}),
+				map[interface{}]interface{}{"name": "connet", "release": "ducati"},
+				map[interface{}]interface{}{"name": "route_registrar", "release": "cf"},
+			)
+		}
 
 		err = setElement(jobVal, "templates", templates)
 		if err != nil {
@@ -160,6 +195,7 @@ func (t *Transformer) modifyCellJob(manifest map[interface{}]interface{}, namePr
 
 	return nil
 }
+
 func (t *Transformer) addAcceptanceJob(manifest map[interface{}]interface{}) (err error) {
 	defer dynRecover("add acceptance with cf job", &err)
 

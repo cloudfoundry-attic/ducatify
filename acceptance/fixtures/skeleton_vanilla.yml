@@ -1,4 +1,28 @@
 jobs:
+- instances: 1
+  name: cc_bridge_z1
+  networks:
+  - name: diego1
+  properties:
+    metron_agent:
+      zone: z1
+  resource_pool: cc_bridge_z1
+  templates:
+  - name: consul_agent
+    release: cf
+  - name: stager
+    release: diego
+  - name: nsync
+    release: diego
+  - name: tps
+    release: diego
+  - name: cc_uploader
+    release: diego
+  - name: metron_agent
+    release: cf
+  update:
+    max_in_flight: 1
+    serial: false
 - name: database_z1
   instances: 1
   persistent_disk: 256

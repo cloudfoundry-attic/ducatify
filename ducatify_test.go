@@ -97,7 +97,41 @@ var _ = Describe("Transform", func() {
 						map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
 					},
 				},
+				map[interface{}]interface{}{
+					"name":      "cc_bridge_z1",
+					"instances": 2,
+					"templates": []interface{}{
+						map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
+					},
+				},
 			}
+		})
+
+		It("colocates connet job template onto every cc_bridge instance group", func() {
+			err := transformer.Transform(manifest, acceptanceJobConfig, systemDomain)
+			Expect(err).NotTo(HaveOccurred())
+			jobs := manifest["jobs"].([]interface{})
+			Expect(jobs[5]).To(Equal(map[interface{}]interface{}{
+				"name":      "cc_bridge_z1",
+				"instances": 2,
+				"properties": map[interface{}]interface{}{
+					"route_registrar": map[interface{}]interface{}{
+						"routes": []interface{}{
+							map[interface{}]interface{}{
+								"name":                  "connet",
+								"registration_interval": "20s",
+								"port":                  4002,
+								"uris":                  []string{"connet.some.system.domain"},
+							},
+						},
+					},
+				},
+				"templates": []interface{}{
+					map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
+					map[interface{}]interface{}{"name": "connet", "release": "ducati"},
+					map[interface{}]interface{}{"name": "route_registrar", "release": "cf"},
+				},
+			}))
 		})
 
 		It("colocates ducati template onto every cell instance group", func() {
@@ -110,22 +144,6 @@ var _ = Describe("Transform", func() {
 				"templates": []interface{}{
 					map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
 					map[interface{}]interface{}{"name": "ducati", "release": "ducati"},
-					map[interface{}]interface{}{"name": "route_registrar", "release": "cf"},
-				},
-				"properties": map[interface{}]interface{}{
-					"nats": map[interface{}]interface{}{
-						"some-key": "some-value",
-					},
-					"route_registrar": map[interface{}]interface{}{
-						"routes": []interface{}{
-							map[interface{}]interface{}{
-								"name":                  "ducati",
-								"registration_interval": "20s",
-								"port":                  4001,
-								"uris":                  []string{"ducati.some.system.domain"},
-							},
-						},
-					},
 				},
 			}))
 			Expect(jobs[3]).To(Equal(map[interface{}]interface{}{
@@ -134,22 +152,6 @@ var _ = Describe("Transform", func() {
 				"templates": []interface{}{
 					map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
 					map[interface{}]interface{}{"name": "ducati", "release": "ducati"},
-					map[interface{}]interface{}{"name": "route_registrar", "release": "cf"},
-				},
-				"properties": map[interface{}]interface{}{
-					"nats": map[interface{}]interface{}{
-						"some-key": "some-value",
-					},
-					"route_registrar": map[interface{}]interface{}{
-						"routes": []interface{}{
-							map[interface{}]interface{}{
-								"name":                  "ducati",
-								"registration_interval": "20s",
-								"port":                  4001,
-								"uris":                  []string{"ducati.some.system.domain"},
-							},
-						},
-					},
 				},
 			}))
 		})
@@ -182,22 +184,8 @@ var _ = Describe("Transform", func() {
 				"templates": []interface{}{
 					map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
 					map[interface{}]interface{}{"name": "ducati", "release": "ducati"},
+					map[interface{}]interface{}{"name": "connet", "release": "ducati"},
 					map[interface{}]interface{}{"name": "route_registrar", "release": "cf"},
-				},
-				"properties": map[interface{}]interface{}{
-					"nats": map[interface{}]interface{}{
-						"some-key": "some-value",
-					},
-					"route_registrar": map[interface{}]interface{}{
-						"routes": []interface{}{
-							map[interface{}]interface{}{
-								"name":                  "ducati",
-								"registration_interval": "20s",
-								"port":                  4001,
-								"uris":                  []string{"ducati.some.system.domain"},
-							},
-						},
-					},
 				},
 			}))
 		})
