@@ -125,6 +125,9 @@ var _ = Describe("Transform", func() {
 							},
 						},
 					},
+					"nats": map[interface{}]interface{}{
+						"some-key": "some-value",
+					},
 				},
 				"templates": []interface{}{
 					map[interface{}]interface{}{"name": "some-template", "release": "some-release"},
@@ -346,6 +349,28 @@ var _ = Describe("Transform", func() {
 								"password": "some-password",
 								"tag":      "admin",
 							},
+						},
+					},
+				},
+			))
+		})
+	})
+
+	Describe("adding connet properties", func() {
+		It("adds properties for connet", func() {
+			err := transformer.Transform(manifest, acceptanceJobConfig, systemDomain)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(manifest["properties"]).To(HaveKeyWithValue("connet",
+				map[interface{}]interface{}{
+					"daemon": map[interface{}]interface{}{
+						"database": map[interface{}]interface{}{
+							"username": "ducati_daemon",
+							"password": "some-password",
+							"name":     "ducati",
+							"ssl_mode": "disable",
+							"host":     "ducati-db.service.cf.internal",
+							"port":     5432,
 						},
 					},
 				},

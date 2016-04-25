@@ -13,6 +13,12 @@ jobs:
         port: 4002
         uris:
         - connet.systemdomain.mycf.example.com
+    nats:
+      machines:
+      - 10.244.0.6
+      password: nats
+      port: 4222
+      user: nats
   resource_pool: cc_bridge_z1
   templates:
   - name: consul_agent
@@ -275,6 +281,15 @@ properties:
   syslog_daemon_config:
     address: null
     port: null
+  connet:
+    daemon:
+      database:
+        host: ducati-db.service.cf.internal
+        port: 5432
+        username: ducati_daemon
+        password: some-password
+        name: ducati
+        ssl_mode: disable
   ducati:
     daemon:
       database:

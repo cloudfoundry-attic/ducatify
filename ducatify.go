@@ -56,12 +56,12 @@ func (t *Transformer) Transform(
 		return fmt.Errorf("adding ducati_db job: %s", err)
 	}
 
-	_, err = getNatsProperties(manifest)
+	natsProperties, err := getNatsProperties(manifest)
 	if err != nil {
 		return fmt.Errorf("getting nats properties: %s", err)
 	}
 
-	err = t.modifyCCBridgeJob(manifest, systemDomain)
+	err = t.modifyCCBridgeJob(manifest, systemDomain, natsProperties)
 	if err != nil {
 		return fmt.Errorf("adding connet template to cc_bridge: %s", err)
 	}
@@ -88,7 +88,12 @@ func (t *Transformer) Transform(
 
 	err = t.addDucatiProperties(manifest)
 	if err != nil {
-		return fmt.Errorf("adding garden properties: %s", err)
+		return fmt.Errorf("adding ducati properties: %s", err)
+	}
+
+	err = t.addConnetProperties(manifest)
+	if err != nil {
+		return fmt.Errorf("adding connet properties: %s", err)
 	}
 
 	err = t.addAcceptanceJob(manifest)
@@ -109,7 +114,7 @@ func dynRecover(context string, err *error) {
 	}
 }
 
-func (t *Transformer) modifyCCBridgeJob(manifest map[interface{}]interface{}, systemDomain string) (err error) {
+func (t *Transformer) modifyCCBridgeJob(manifest map[interface{}]interface{}, systemDomain string, natsProperties interface{}) (err error) {
 	defer dynRecover("add ducati template to cc_bridge", &err)
 
 	for _, jobVal := range manifest["jobs"].([]interface{}) {
@@ -128,6 +133,10 @@ func (t *Transformer) modifyCCBridgeJob(manifest map[interface{}]interface{}, sy
 			if err != nil {
 				return err
 			}
+		}
+		err = setElement(properties, "nats", natsProperties)
+		if err != nil {
+			return err
 		}
 		routeRegistrarProperties := map[interface{}]interface{}{
 			"routes": []interface{}{
@@ -329,6 +338,26 @@ func (t *Transformer) addDucatiProperties(manifest map[interface{}]interface{}) 
 					"password": t.DBPassword,
 					"tag":      "admin",
 				},
+			},
+		},
+	}
+
+	return nil
+}
+
+func (t *Transformer) addConnetProperties(manifest map[interface{}]interface{}) (err error) {
+	defer dynRecover("add connet properties", &err)
+
+	props := manifest["properties"].(map[interface{}]interface{})
+	props["connet"] = map[interface{}]interface{}{
+		"daemon": map[interface{}]interface{}{
+			"database": map[interface{}]interface{}{
+				"username": t.DBUsername,
+				"password": t.DBPassword,
+				"name":     t.DBName,
+				"ssl_mode": t.DBSSLMode,
+				"host":     "ducati-db.service.cf.internal",
+				"port":     5432,
 			},
 		},
 	}
