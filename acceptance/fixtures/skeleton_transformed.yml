@@ -263,6 +263,8 @@ properties:
     default_container_grace_time: 0
     deny_networks:
     - 0.0.0.0/0
+    dns_servers:
+    - 192.168.255.254
     disk_quota_enabled: null
     enable_graph_cleanup: true
     graph_cleanup_threshold_in_mb: 0

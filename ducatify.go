@@ -14,6 +14,7 @@ type Transformer struct {
 	GardenSharedMounts           []string
 	GardenNetworkPlugin          string
 	GardenNetworkPluginExtraArgs []string
+	GardenDNSServers             []string
 	DBName                       string
 	DBUsername                   string
 	DBPassword                   string
@@ -36,6 +37,7 @@ func New() *Transformer {
 		GardenSharedMounts:           []string{"/var/vcap/data/ducati/container-netns"},
 		GardenNetworkPlugin:          "/var/vcap/packages/ducati/bin/guardian-cni-adapter",
 		GardenNetworkPluginExtraArgs: []string{"--configFile=/var/vcap/jobs/ducati/config/adapter.json"},
+		GardenDNSServers:             []string{"192.168.255.254"},
 
 		NsyncNetworkID: "ducati-overlay",
 	}
@@ -298,6 +300,7 @@ func (t *Transformer) addGardenProperties(manifest map[interface{}]interface{}) 
 	gardenProps["network_plugin"] = t.GardenNetworkPlugin
 	gardenProps["network_plugin_extra_args"] = t.GardenNetworkPluginExtraArgs
 	gardenProps["shared_mounts"] = t.GardenSharedMounts
+	gardenProps["dns_servers"] = t.GardenDNSServers
 	return nil
 }
 

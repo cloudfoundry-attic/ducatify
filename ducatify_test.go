@@ -293,6 +293,9 @@ var _ = Describe("Transform", func() {
 					"network_plugin_extra_args": []string{
 						"--configFile=/var/vcap/jobs/ducati/config/adapter.json",
 					},
+					"dns_servers": []string{
+						"192.168.255.254",
+					},
 				}))
 		})
 	})
